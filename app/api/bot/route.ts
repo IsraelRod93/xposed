@@ -3,7 +3,11 @@ import { NextRequest, NextResponse } from "next/server";
 
 // IMPORTANTE: Define estas variables en tu archivo .env.local
 // TELEGRAM_BOT_TOKEN=tu_token_aqui
-const bot = new Bot(process.env.TELEGRAM_BOT_TOKEN!);
+const botToken = process.env.TELEGRAM_BOT_TOKEN;
+if (!botToken) {
+  console.warn("TELEGRAM_BOT_TOKEN is not set, bot will not function.");
+}
+const bot = new Bot(botToken || "dummy_token");
 
 bot.command("start", async (ctx) => {
   await ctx.reply("¡Bienvenido a Xposed! 🤫\n\nAlguien te ha dejado un secreto.", {
