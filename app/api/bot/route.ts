@@ -1,8 +1,7 @@
 import { Bot } from "grammy";
 import { NextRequest, NextResponse } from "next/server";
+import { supabase } from "@/lib/supabase";
 
-// IMPORTANTE: Define estas variables en tu archivo .env.local
-// TELEGRAM_BOT_TOKEN=tu_token_aqui
 const botToken = process.env.TELEGRAM_BOT_TOKEN;
 if (!botToken) {
   console.warn("TELEGRAM_BOT_TOKEN is not set, bot will not function.");
@@ -10,14 +9,57 @@ if (!botToken) {
 const bot = new Bot(botToken || "dummy_token");
 
 bot.command("start", async (ctx) => {
-  await ctx.reply("¡Bienvenido a Xposed! 🤫\n\nAlguien te ha dejado un secreto.", {
-    reply_markup: {
-      inline_keyboard: [[{ 
-        text: "Abrir Xposed", 
-        web_app: { url: process.env.NEXT_PUBLIC_APP_URL! } 
-      }]]
+  const telegramId = ctx.from?.id;
+  const username = ctx.from?.username || "anonimo";
+
+  if (!telegramId) return;
+
+  try {
+    // 1. Verificar si el usuario ya existe
+    let { data: user, error } = await supabase
+      .from("users")
+      .select("*")
+      .eq("telegram_id", telegramId)
+      .single();
+
+    // 2. Si no existe, crearlo con un share_link único
+    if (!user && !error) {
+      const shareLink = `${username}_${Math.random().toString(36).substring(2, 7)}`;
+      const { data: newUser, error: createError } = await supabase
+        .from("users")
+        .insert([{ 
+          telegram_id: telegramId, 
+          username: username, 
+          share_link: shareLink 
+        }])
+        .select()
+        .single();
+      
+      if (createError) throw createError;
+      user = newUser;
     }
-  });
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tu-app.vercel.app";
+    const personalLink = `${appUrl}/u/${user.share_link}`;
+
+    await ctx.reply(
+      `¡Bienvenido a Xposed, @${username}! 🤫\n\n` +
+      `Tu enlace personal para recibir secretos es:\n` +
+      `👉 ${personalLink}\n\n` +
+      `Compártelo en tu bio de Instagram o TikTok.`,
+      {
+        reply_markup: {
+          inline_keyboard: [[{ 
+            text: "Ver mi Inbox", 
+            web_app: { url: appUrl } 
+          }]]
+        }
+      }
+    );
+  } catch (err) {
+    console.error("Error en /start:", err);
+    await ctx.reply("Hubo un error al iniciar. Inténtalo de nuevo más tarde.");
+  }
 });
 
 // Middleware para procesar el webhook de Telegram
