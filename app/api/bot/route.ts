@@ -13,6 +13,10 @@ bot.command("start", async (ctx) => {
   const username = ctx.from?.username || "anonimo";
 
   if (!telegramId) return;
+  if (!supabase) {
+    console.error("Supabase client not initialized");
+    return ctx.reply("Error de configuración del servidor.");
+  }
 
   try {
     // 1. Verificar si el usuario ya existe
