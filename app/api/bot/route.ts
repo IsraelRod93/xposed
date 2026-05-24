@@ -43,7 +43,8 @@ bot.command("start", async (ctx) => {
       user = newUser;
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tu-app.vercel.app";
+    const rawAppUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tu-app.vercel.app";
+    const appUrl = rawAppUrl.endsWith("/") ? rawAppUrl.slice(0, -1) : rawAppUrl;
     const personalLink = `${appUrl}/u/${user.share_link}`;
 
     await ctx.reply(

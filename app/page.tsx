@@ -55,7 +55,8 @@ export default function InboxPage() {
       .single();
 
     if (data) {
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+      const rawAppUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+      const appUrl = rawAppUrl.endsWith("/") ? rawAppUrl.slice(0, -1) : rawAppUrl;
       const fullLink = `${appUrl}/u/${data.share_link}`;
       
       navigator.clipboard.writeText(fullLink);
