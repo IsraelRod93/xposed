@@ -88,6 +88,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "Token config error" });
     }
 
+    // INICIALIZACIÓN EXPLÍCITA (Solución al error detectado)
+    if (!bot.isInited()) {
+      console.log("Inicializando bot...");
+      await bot.init();
+      console.log("Bot inicializado con éxito:", bot.botInfo.username);
+    }
+
     console.log("Llamando a bot.handleUpdate...");
     await bot.handleUpdate(body);
     console.log("bot.handleUpdate COMPLETADO CON ÉXITO");
