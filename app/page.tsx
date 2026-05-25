@@ -18,30 +18,55 @@ export default function InboxPage() {
   useEffect(() => {
     // 1. Obtener datos de Telegram
     const tg = window.Telegram?.WebApp;
+    console.log("SDK de Telegram detectado:", !!tg);
+
     if (tg) {
       tg.expand();
       const tgUser = tg.initDataUnsafe?.user;
+      console.log("Usuario de Telegram detectado:", tgUser?.id);
+
       if (tgUser) {
         setUser(tgUser);
         fetchMessages(tgUser.id);
+      } else {
+        console.warn("No se pudo obtener el usuario de initDataUnsafe");
+        setLoading(false);
       }
     } else {
-      // Para pruebas locales si no hay Telegram
+      console.warn("La app no se está ejecutando dentro de Telegram");
       setLoading(false);
     }
   }, []);
 
   async function fetchMessages(telegramId: number) {
-    if (!supabase) return;
+    if (!supabase) {
+      console.error("Supabase no configurado");
+      setLoading(false);
+      return;
+    }
     
-    const { data, error } = await supabase
-      .from('messages')
-      .select('*')
-      .eq('receiver_id', telegramId)
-      .order('created_at', { ascending: false });
+    console.log("Consultando mensajes para el ID:", telegramId);
 
-    if (data) setMessages(data);
-    setLoading(false);
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('receiver_id', telegramId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error("Error de Supabase al traer mensajes:", error);
+      }
+
+      if (data) {
+        console.log("Mensajes recibidos:", data.length);
+        setMessages(data);
+      }
+    } catch (err) {
+      console.error("Error inesperado:", err);
+    } finally {
+      setLoading(false);
+    }
   }
 
   const copyLink = async () => {
