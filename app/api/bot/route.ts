@@ -69,12 +69,23 @@ bot.command("start", async (ctx) => {
 
 // Middleware para procesar el webhook de Telegram
 export async function POST(req: NextRequest) {
+  console.log("--- NUEVA PETICIÓN RECIBIDA EN /api/bot ---");
   try {
     const body = await req.json();
+    console.log("Body de Telegram:", JSON.stringify(body));
+
+    if (!botToken || botToken === "pon_tu_token_aqui") {
+      console.error("TOKEN DE BOT INVÁLIDO O NO CONFIGURADO");
+      return NextResponse.json({ ok: false, error: "Token config error" });
+    }
+
+    console.log("Llamando a bot.handleUpdate...");
     await bot.handleUpdate(body);
+    console.log("bot.handleUpdate COMPLETADO CON ÉXITO");
+
     return NextResponse.json({ ok: true });
   } catch (err) {
-    console.error("Error en webhook:", err);
-    return NextResponse.json({ ok: false }, { status: 500 });
+    console.error("ERROR CRÍTICO EN WEBHOOK:", err);
+    return NextResponse.json({ ok: false, error: "Internal server error" }, { status: 500 });
   }
 }
