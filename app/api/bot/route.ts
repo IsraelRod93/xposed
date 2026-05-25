@@ -9,8 +9,17 @@ if (!botToken) {
 const bot = new Bot(botToken || "dummy_token");
 
 bot.command("start", async (ctx) => {
+  console.log("Comando /start detectado");
   const telegramId = ctx.from?.id;
   const username = ctx.from?.username || "anonimo";
+
+  // PRUEBA DE VIDA: Responder algo simple de inmediato
+  try {
+    await ctx.reply("¡Conectado! Intentando cargar tu perfil... ⏳");
+    console.log("Mensaje de prueba enviado con éxito");
+  } catch (e) {
+    console.error("ERROR AL ENVIAR MENSAJE DE PRUEBA:", e);
+  }
 
   if (!telegramId) return;
   if (!supabase) {
