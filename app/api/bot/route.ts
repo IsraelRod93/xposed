@@ -33,11 +33,18 @@ bot.command("start", async (ctx) => {
       .from("users")
       .select("*")
       .eq("telegram_id", telegramId)
-      .single();
+      .maybeSingle();
 
-    // 2. Si no existe, crearlo con un share_link único
-    if (!user && !error) {
+    if (error) {
+      console.error("Error al buscar usuario:", error);
+      throw error;
+    }
+
+    // 2. Si no existe, crearlo
+    if (!user) {
+      console.log("Creando nuevo usuario...");
       const shareLink = `${username}_${Math.random().toString(36).substring(2, 7)}`;
+      
       const { data: newUser, error: createError } = await supabase
         .from("users")
         .insert([{ 
@@ -48,9 +55,15 @@ bot.command("start", async (ctx) => {
         .select()
         .single();
       
-      if (createError) throw createError;
+      if (createError) {
+        console.error("Error al crear usuario:", createError);
+        throw createError;
+      }
       user = newUser;
+      console.log("Usuario creado con éxito:", user.share_link);
     }
+
+    if (!user) throw new Error("No se pudo obtener el usuario");
 
     const rawAppUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tu-app.vercel.app";
     const appUrl = rawAppUrl.endsWith("/") ? rawAppUrl.slice(0, -1) : rawAppUrl;
