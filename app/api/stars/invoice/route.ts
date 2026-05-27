@@ -32,6 +32,7 @@ export async function POST(req: NextRequest) {
       pkg.label,
       `Recibe ${pkg.stars} estrellas para revelar pistas en Xposed`,
       payload,
+      "",    // provider_token: empty string for Telegram Stars (XTR)
       "XTR",
       [{ label: pkg.label, amount: pkg.xtr }]
     );
