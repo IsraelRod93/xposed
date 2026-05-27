@@ -1,25 +1,37 @@
--- Tables for Xposed
-create table users (
-  telegram_id bigint primary key,
-  username text,
-  share_link text unique not null,
-  created_at timestamp with time zone default timezone('utc'::text, now())
+-- Updated Tables for Xposed (Neon/PostgreSQL)
+
+-- Users table with stars and gamification fields
+CREATE TABLE IF NOT EXISTS users (
+  telegram_id BIGINT PRIMARY KEY,
+  username TEXT,
+  share_link TEXT UNIQUE NOT NULL,
+  stars INTEGER DEFAULT 100,
+  streak_count INTEGER DEFAULT 0,
+  last_active_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  last_mission_completed_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-create table messages (
-  id uuid primary key default gen_random_uuid(),
-  receiver_id bigint references users(telegram_id),
-  content text not null,
-  sender_os text,
-  sender_country text,
-  is_clue_revealed boolean default false,
-  created_at timestamp with time zone default timezone('utc'::text, now())
+-- Messages table (secret confessions)
+CREATE TABLE IF NOT EXISTS messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  receiver_id BIGINT REFERENCES users(telegram_id),
+  content TEXT NOT NULL,
+  sender_os TEXT,
+  sender_country TEXT,
+  is_clue_revealed BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-create table transactions (
-  id uuid primary key default gen_random_uuid(),
-  user_id bigint references users(telegram_id),
-  message_id uuid references messages(id),
-  amount integer not null,
-  created_at timestamp with time zone default timezone('utc'::text, now())
+-- Transactions for tracking star usage and rewards
+CREATE TABLE IF NOT EXISTS transactions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id BIGINT REFERENCES users(telegram_id),
+  type TEXT NOT NULL, -- 'reveal', 'mission_reward', 'purchase'
+  amount INTEGER NOT NULL, -- positive for rewards, negative for costs
+  message_id UUID REFERENCES messages(id),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Daily missions progress tracking (optional, but good for scalability)
+-- For now, we can calculate today's progress by counting messages.

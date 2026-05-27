@@ -9,8 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.42.0",
-    "@telegram-apps/sdk-react": "^1.0.0",
+    "@neondatabase/serverless": "^1.1.0",
     "grammy": "^1.22.0",
     "react": "^18",
     "react-dom": "^18",
