@@ -32,6 +32,8 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Atomic CTE: only reveals if not already revealed, only charges stars if reveal succeeds
+    // negCost computed in JS to avoid PostgreSQL "operator is not unique" on unary - with unknown type
+    const negCost = -REVEAL_COST;
     const result = await sql`
       WITH updated_message AS (
         UPDATE messages
@@ -51,7 +53,7 @@ export async function POST(req: NextRequest) {
       ),
       inserted AS (
         INSERT INTO transactions (user_id, message_id, type, amount)
-        SELECT ${telegram_id}, updated_message.id, 'reveal', -${REVEAL_COST}
+        SELECT ${telegram_id}, updated_message.id, 'reveal', ${negCost}
         FROM updated_user, updated_message
       )
       SELECT sender_os, sender_country FROM updated_message
