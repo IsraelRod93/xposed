@@ -18,6 +18,18 @@ export async function POST(req: NextRequest) {
 
     const name = (display_name || "").trim().slice(0, 32);
 
+    if (name) {
+      const taken = await sql`
+        SELECT telegram_id FROM users
+        WHERE display_name ILIKE ${name}
+          AND telegram_id != ${telegram_id}
+        LIMIT 1
+      `;
+      if (taken.length > 0) {
+        return NextResponse.json({ error: "Ese nombre ya está en uso" }, { status: 409 });
+      }
+    }
+
     const result = await sql`
       UPDATE users
       SET display_name = ${name || null}

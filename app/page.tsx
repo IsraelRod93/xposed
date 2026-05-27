@@ -487,19 +487,27 @@ function LinkPanel({ shareLink, onCopy, copied, todayCount = 0, telegramId, onCl
     }
   };
 
+  const [nameError, setNameError] = useState<string | null>(null);
+
   const saveName = async () => {
     if (!telegramId || savingName) return;
     setSavingName(true);
     setNameSaved(false);
+    setNameError(null);
     try {
       const res = await fetch('/api/user/display-name', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ telegram_id: telegramId, display_name: displayName }),
       });
-      if (res.ok) setNameSaved(true);
+      const data = await res.json();
+      if (res.ok) {
+        setNameSaved(true);
+      } else {
+        setNameError(data.error || 'Error al guardar');
+      }
     } catch {
-      // silently fail
+      setNameError('Error de conexión');
     } finally {
       setSavingName(false);
     }
@@ -546,13 +554,14 @@ function LinkPanel({ shareLink, onCopy, copied, todayCount = 0, telegramId, onCl
         <div style={{ display: 'flex', gap: 8 }}>
           <input
             value={displayName}
-            onChange={e => { setDisplayName(e.target.value.slice(0, 32)); setNameSaved(false); }}
+            onChange={e => { setDisplayName(e.target.value.slice(0, 32)); setNameSaved(false); setNameError(null); }}
             onKeyDown={e => e.key === 'Enter' && saveName()}
             placeholder="ej: Ana👑, ElRey, 🦊 Nico..."
             maxLength={32}
             style={{
               flex: 1, height: 40, padding: '0 12px',
-              background: XP.bg, border: `1px solid ${nameSaved ? XP.acid : XP.line}`,
+              background: XP.bg,
+              border: `1px solid ${nameError ? XP.hot : nameSaved ? XP.acid : XP.line}`,
               borderRadius: 10, color: XP.ink,
               fontFamily: XP.fBody, fontSize: 14,
               outline: 'none', transition: 'border-color .2s',
@@ -574,6 +583,16 @@ function LinkPanel({ shareLink, onCopy, copied, todayCount = 0, telegramId, onCl
             {savingName ? '...' : nameSaved ? '✓ GUARDADO' : 'GUARDAR'}
           </button>
         </div>
+        {nameError && (
+          <div style={{ marginTop: 8 }}>
+            <XPMonoLabel size={8} color={XP.hot}>⚠ {nameError}</XPMonoLabel>
+          </div>
+        )}
+        {nameSaved && !nameError && (
+          <div style={{ marginTop: 8 }}>
+            <XPMonoLabel size={8} color={XP.acid}>✓ Nombre guardado — ya aparece en el ranking</XPMonoLabel>
+          </div>
+        )}
       </div>
 
       <div style={{
