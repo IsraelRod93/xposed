@@ -13,3 +13,8 @@ export async function ensureTransactionsTable() {
     )
   `;
 }
+
+export async function ensureDisplayNameColumn() {
+  if (!sql) return;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS display_name TEXT`;
+}

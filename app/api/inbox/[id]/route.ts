@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
+import { ensureDisplayNameColumn } from "@/lib/migrations";
 
 export async function GET(
   req: NextRequest,
@@ -10,6 +11,8 @@ export async function GET(
   }
 
   const { id: telegramId } = await params;
+
+  await ensureDisplayNameColumn();
 
   try {
     // 1. Get user data and update streak atomically on each inbox open

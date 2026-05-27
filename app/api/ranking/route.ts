@@ -1,27 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
+import { ensureDisplayNameColumn } from "@/lib/migrations";
 
 export async function GET(req: NextRequest) {
   if (!sql) {
     return NextResponse.json({ error: "Database not configured" }, { status: 500 });
   }
 
+  await ensureDisplayNameColumn();
+
   try {
-    // Get top users by messages received in the last 7 days
     const ranking = await sql`
-      SELECT 
+      SELECT
         u.telegram_id,
         u.username,
+        u.display_name,
         u.stars,
         COUNT(m.id) as message_count
       FROM users u
       LEFT JOIN messages m ON u.telegram_id = m.receiver_id AND m.created_at > NOW() - INTERVAL '7 days'
-      GROUP BY u.telegram_id, u.username, u.stars
+      GROUP BY u.telegram_id, u.username, u.display_name, u.stars
       ORDER BY message_count DESC
       LIMIT 100
     `;
 
-    // Process tiers based on counts (example logic)
     const processedRanking = ranking.map((user, index) => {
       let tier = 'bronze';
       if (index < 3) tier = 'legend';
@@ -29,9 +31,12 @@ export async function GET(req: NextRequest) {
       else if (index < 25) tier = 'gold';
       else if (index < 50) tier = 'silver';
 
+      const name = user.display_name ||
+        (user.username ? `@${user.username}` : `Usuario ${user.telegram_id.toString().slice(-4)}`);
+
       return {
         rank: index + 1,
-        name: user.username ? `@${user.username}` : `Usuario ${user.telegram_id.toString().slice(-4)}`,
+        name,
         count: parseInt(user.message_count),
         tier,
         telegram_id: user.telegram_id

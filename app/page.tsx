@@ -274,6 +274,7 @@ export default function InboxPage() {
             todayCount={stats.today}
             telegramId={user?.id}
             onClaim={() => fetchInbox(user.id)}
+            currentDisplayName={userData?.display_name || ''}
           />
         )}
       </div>
@@ -454,7 +455,7 @@ function RankingMini({ ranking, currentUserId }: { ranking: any[], currentUserId
   );
 }
 
-function LinkPanel({ shareLink, onCopy, copied, todayCount = 0, telegramId, onClaim }: { shareLink?: string, onCopy: () => void, copied: boolean, todayCount?: number, telegramId?: number, onClaim?: () => void }) {
+function LinkPanel({ shareLink, onCopy, copied, todayCount = 0, telegramId, onClaim, currentDisplayName }: { shareLink?: string, onCopy: () => void, copied: boolean, todayCount?: number, telegramId?: number, onClaim?: () => void, currentDisplayName?: string }) {
   const router = useRouter();
   const MISSION_GOAL = 5;
   const MISSION_REWARD = 100;
@@ -462,6 +463,9 @@ function LinkPanel({ shareLink, onCopy, copied, todayCount = 0, telegramId, onCl
   const [claiming, setClaiming] = useState(false);
   const [claimed, setClaimed] = useState(false);
   const [claimError, setClaimError] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState(currentDisplayName || '');
+  const [savingName, setSavingName] = useState(false);
+  const [nameSaved, setNameSaved] = useState(false);
 
   const fullLink = `${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/u/${shareLink}`;
   const shareText = `Dime tus secretos anónimos en Xposed 🤫: ${fullLink}`;
@@ -480,6 +484,24 @@ function LinkPanel({ shareLink, onCopy, copied, todayCount = 0, telegramId, onCl
       case 'TikTok':
         router.push('/story');
         break;
+    }
+  };
+
+  const saveName = async () => {
+    if (!telegramId || savingName) return;
+    setSavingName(true);
+    setNameSaved(false);
+    try {
+      const res = await fetch('/api/user/display-name', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telegram_id: telegramId, display_name: displayName }),
+      });
+      if (res.ok) setNameSaved(true);
+    } catch {
+      // silently fail
+    } finally {
+      setSavingName(false);
     }
   };
 
@@ -511,6 +533,49 @@ function LinkPanel({ shareLink, onCopy, copied, todayCount = 0, telegramId, onCl
 
   return (
     <div style={{ marginTop: 4 }}>
+
+      {/* Display name */}
+      <div style={{
+        padding: 18, background: XP.surface, border: `1px solid ${XP.line}`,
+        borderRadius: 18, marginBottom: 12,
+      }}>
+        <XPMonoLabel size={10}>TU NOMBRE EN EL RANKING</XPMonoLabel>
+        <div style={{ marginTop: 4, marginBottom: 10 }}>
+          <XPMonoLabel size={8} color={XP.inkMuted}>Elige cómo apareces en el ranking — puede ser tu nombre, apodo, lo que quieras</XPMonoLabel>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input
+            value={displayName}
+            onChange={e => { setDisplayName(e.target.value.slice(0, 32)); setNameSaved(false); }}
+            onKeyDown={e => e.key === 'Enter' && saveName()}
+            placeholder="ej: Ana👑, ElRey, 🦊 Nico..."
+            maxLength={32}
+            style={{
+              flex: 1, height: 40, padding: '0 12px',
+              background: XP.bg, border: `1px solid ${nameSaved ? XP.acid : XP.line}`,
+              borderRadius: 10, color: XP.ink,
+              fontFamily: XP.fBody, fontSize: 14,
+              outline: 'none', transition: 'border-color .2s',
+            }}
+          />
+          <button
+            onClick={saveName}
+            disabled={savingName || !displayName.trim()}
+            style={{
+              height: 40, padding: '0 16px', borderRadius: 10, border: 'none',
+              background: nameSaved ? `${XP.acid}33` : XP.acid,
+              color: nameSaved ? XP.acid : XP.bg,
+              fontFamily: XP.fMono, fontWeight: 700, fontSize: 11,
+              cursor: 'pointer', whiteSpace: 'nowrap',
+              opacity: savingName || !displayName.trim() ? 0.5 : 1,
+              transition: 'all .2s',
+            }}
+          >
+            {savingName ? '...' : nameSaved ? '✓ GUARDADO' : 'GUARDAR'}
+          </button>
+        </div>
+      </div>
+
       <div style={{
         padding: 18, background: XP.surface, border: `1px solid ${XP.line}`,
         borderRadius: 18, marginBottom: 12,
