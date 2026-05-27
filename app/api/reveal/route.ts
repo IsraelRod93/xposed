@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
+import { ensureTransactionsTable } from "@/lib/migrations";
 
 const REVEAL_COST = 50;
 
@@ -7,6 +8,8 @@ export async function POST(req: NextRequest) {
   if (!sql) {
     return NextResponse.json({ error: "Database not configured" }, { status: 500 });
   }
+
+  await ensureTransactionsTable();
 
   try {
     const { telegram_id, message_id } = await req.json();
