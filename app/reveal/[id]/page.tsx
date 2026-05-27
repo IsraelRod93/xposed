@@ -13,9 +13,9 @@ import {
 const REVEAL_COST = 50;
 
 const STAR_PACKAGES = [
-  { id: '100',  stars: 100,  xtr: 1,  popular: false },
-  { id: '500',  stars: 500,  xtr: 5,  popular: true  },
-  { id: '1000', stars: 1000, xtr: 10, popular: false },
+  { id: '100',  stars: 100,  xtr: 1,  popular: false, bonus: null },
+  { id: '500',  stars: 500,  xtr: 5,  popular: true,  bonus: '+100 gratis' },
+  { id: '1000', stars: 1000, xtr: 10, popular: false, bonus: '+250 gratis' },
 ] as const;
 
 export default function RevealPage() {
@@ -317,38 +317,58 @@ function NoStarsState({
 
       {/* Buy packages */}
       <div style={{ marginBottom: 12 }}>
-        <XPMonoLabel size={10}>COMPRAR ESTRELLAS</XPMonoLabel>
-        <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+        <XPMonoLabel size={10}>COMPRAR CON TELEGRAM STARS</XPMonoLabel>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 10 }}>
           {STAR_PACKAGES.map(pkg => (
             <button
               key={pkg.id}
               onClick={() => buyStars(pkg.id)}
               disabled={!!buying}
               style={{
-                flex: 1, padding: '14px 6px', borderRadius: 16, cursor: 'pointer',
+                width: '100%', padding: '14px 16px', borderRadius: 16, cursor: 'pointer',
                 background: pkg.popular ? `${XP.gold}18` : XP.surface,
                 border: `1.5px solid ${pkg.popular ? XP.gold : XP.line}`,
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 opacity: buying && buying !== pkg.id ? 0.5 : 1,
-                transition: 'opacity .15s',
-                position: 'relative',
+                transition: 'opacity .15s', position: 'relative',
               }}
             >
               {pkg.popular && (
                 <div style={{
-                  position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)',
+                  position: 'absolute', top: -10, right: 12,
                   background: XP.gold, color: XP.bg, fontSize: 8,
                   fontFamily: XP.fMono, fontWeight: 700, padding: '2px 8px',
                   borderRadius: 999, whiteSpace: 'nowrap', letterSpacing: '0.08em',
                 }}>
-                  POPULAR
+                  MEJOR VALOR
                 </div>
               )}
-              <span style={{ fontSize: 20 }}>⭐</span>
-              <div style={{ fontFamily: XP.fDisp, fontSize: 20, color: XP.gold, lineHeight: 1 }}>
-                {buying === pkg.id ? '...' : `${pkg.stars} ★`}
+
+              {/* Left: what you pay */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 22 }}>⭐</span>
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontFamily: XP.fDisp, fontSize: 20, color: XP.ink, lineHeight: 1 }}>
+                    {buying === pkg.id ? '...' : `${pkg.xtr} Telegram Star${pkg.xtr > 1 ? 's' : ''}`}
+                  </div>
+                  <div style={{ marginTop: 2 }}>
+                    <XPMonoLabel size={8} color={XP.inkMuted}>PAGAS</XPMonoLabel>
+                  </div>
+                </div>
               </div>
-              <XPMonoLabel size={8} color={XP.inkMuted}>{pkg.xtr} Telegram Star{pkg.xtr > 1 ? 's' : ''}</XPMonoLabel>
+
+              {/* Arrow */}
+              <span style={{ color: XP.inkFaint, fontSize: 14 }}>→</span>
+
+              {/* Right: what you get */}
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontFamily: XP.fDisp, fontSize: 20, color: XP.gold, lineHeight: 1 }}>
+                  {pkg.stars} ★
+                </div>
+                <div style={{ marginTop: 2 }}>
+                  <XPMonoLabel size={8} color={XP.inkMuted}>RECIBES</XPMonoLabel>
+                </div>
+              </div>
             </button>
           ))}
         </div>
