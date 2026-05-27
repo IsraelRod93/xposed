@@ -248,14 +248,14 @@ export default function InboxPage() {
         </div>
       )}
 
-      {/* MISSION — siempre visible arriba de los tabs */}
-      <div style={{ padding: '18px 18px 0', position: 'relative', zIndex: 2 }}>
+      {/* MISSION — visible en todos los tabs excepto inbox */}
+      {tab !== 'inbox' && <div style={{ padding: '18px 18px 0', position: 'relative', zIndex: 2 }}>
         <MissionPanel
           mission={mission}
           claiming={missionClaiming}
           onClaim={(id) => claimMission(id, user?.id)}
         />
-      </div>
+      </div>}
 
       {/* TABS */}
       <div style={{
