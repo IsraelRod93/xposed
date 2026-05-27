@@ -248,9 +248,18 @@ export default function InboxPage() {
         </div>
       )}
 
+      {/* MISSION — siempre visible arriba de los tabs */}
+      <div style={{ padding: '18px 18px 0', position: 'relative', zIndex: 2 }}>
+        <MissionPanel
+          mission={mission}
+          claiming={missionClaiming}
+          onClaim={(id) => claimMission(id, user?.id)}
+        />
+      </div>
+
       {/* TABS */}
       <div style={{
-        padding: '18px 18px 0', display: 'flex', gap: 8,
+        padding: '0 18px 0', display: 'flex', gap: 8,
         position: 'relative', zIndex: 2,
       }}>
         {[
@@ -293,16 +302,7 @@ export default function InboxPage() {
             messages.map(m => <SealedEnvelope key={m.id} msg={m} telegramId={user?.id} onReveal={() => fetchInbox(user.id)} />)
           )
         )}
-        {tab === 'rank' && (
-          <>
-            <MissionPanel
-              mission={mission}
-              claiming={missionClaiming}
-              onClaim={(id) => claimMission(id, user?.id)}
-            />
-            <RankingMini ranking={ranking} currentUserId={user?.id} />
-          </>
-        )}
+        {tab === 'rank' && <RankingMini ranking={ranking} currentUserId={user?.id} />}
         {tab === 'link'  && (
           <LinkPanel
             shareLink={userData?.share_link}
