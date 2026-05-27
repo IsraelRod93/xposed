@@ -259,7 +259,7 @@ export default function InboxPage() {
 
       {/* TABS */}
       <div style={{
-        padding: '0 18px 0', display: 'flex', gap: 8,
+        padding: '12px 18px 0', display: 'flex', gap: 8,
         position: 'relative', zIndex: 2,
       }}>
         {[
