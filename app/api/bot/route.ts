@@ -128,6 +128,53 @@ bot.command("start", async (ctx) => {
   }
 });
 
+bot.on("pre_checkout_query", async (ctx) => {
+  await ctx.answerPreCheckoutQuery(true);
+});
+
+bot.on("message:successful_payment", async (ctx) => {
+  const payment = ctx.message?.successful_payment;
+  if (!payment) return;
+
+  const payload = payment.invoice_payload;
+  // payload format: "stars_TELEGRAMID_AMOUNT"
+  const parts = payload.split("_");
+  if (parts.length !== 3 || parts[0] !== "stars") return;
+
+  const telegramId = parseInt(parts[1]);
+  const amount = parseInt(parts[2]);
+
+  if (!telegramId || !amount || !sql) return;
+
+  try {
+    await sql`
+      WITH updated_user AS (
+        UPDATE users
+        SET stars = stars + ${amount}
+        WHERE telegram_id = ${telegramId}
+        RETURNING telegram_id
+      )
+      INSERT INTO transactions (user_id, type, amount)
+      SELECT telegram_id, 'purchase', ${amount}
+      FROM updated_user
+    `;
+
+    await ctx.reply(
+      `✅ ¡Recibiste ${amount} ★ estrellas!\n\nYa puedes revelar pistas en tu inbox.`,
+      {
+        reply_markup: {
+          inline_keyboard: [[{
+            text: "Ver mi Inbox 📩",
+            web_app: { url: process.env.NEXT_PUBLIC_APP_URL || "https://tu-app.vercel.app" }
+          }]]
+        }
+      }
+    );
+  } catch (err) {
+    console.error("[BOT] Error processing payment:", err);
+  }
+});
+
 // Middleware para procesar el webhook de Telegram
 export async function POST(req: NextRequest) {
   try {
