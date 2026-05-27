@@ -3,7 +3,7 @@ import { sql } from "@/lib/db";
 import { ensureTransactionsTable } from "@/lib/migrations";
 
 const MISSION_GOAL = 5;
-const MISSION_REWARD = 50;
+const MISSION_REWARD = 100;
 
 export async function POST(req: NextRequest) {
   if (!sql) {

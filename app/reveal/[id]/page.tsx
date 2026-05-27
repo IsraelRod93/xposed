@@ -383,7 +383,7 @@ function NoStarsState({
           <span style={{ fontSize: 20 }}>🎁</span>
           <div style={{ flex: 1 }}>
             <div style={{ fontFamily: XP.fDisp, fontSize: 15, lineHeight: 1.1, color: XP.ink }}>
-              gana {REVEAL_COST} 🪙 tokens gratis
+              gana 100 🪙 tokens gratis
             </div>
             <div style={{ marginTop: 3, color: XP.inkDim, fontSize: 12 }}>
               recibe 5 secretos hoy → misión completada

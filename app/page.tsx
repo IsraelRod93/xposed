@@ -267,12 +267,13 @@ export default function InboxPage() {
         )}
         {tab === 'rank'  && <RankingMini ranking={ranking} currentUserId={user?.id} />}
         {tab === 'link'  && (
-          <LinkPanel 
-            shareLink={userData?.share_link} 
-            onCopy={copyLink} 
-            copied={copied} 
+          <LinkPanel
+            shareLink={userData?.share_link}
+            onCopy={copyLink}
+            copied={copied}
             todayCount={stats.today}
             telegramId={user?.id}
+            onClaim={() => fetchInbox(user.id)}
           />
         )}
       </div>
@@ -453,19 +454,21 @@ function RankingMini({ ranking, currentUserId }: { ranking: any[], currentUserId
   );
 }
 
-function LinkPanel({ shareLink, onCopy, copied, todayCount = 0, telegramId }: { shareLink?: string, onCopy: () => void, copied: boolean, todayCount?: number, telegramId?: number }) {
+function LinkPanel({ shareLink, onCopy, copied, todayCount = 0, telegramId, onClaim }: { shareLink?: string, onCopy: () => void, copied: boolean, todayCount?: number, telegramId?: number, onClaim?: () => void }) {
   const router = useRouter();
   const MISSION_GOAL = 5;
+  const MISSION_REWARD = 100;
   const progress = Math.min(100, (todayCount / MISSION_GOAL) * 100);
   const [claiming, setClaiming] = useState(false);
   const [claimed, setClaimed] = useState(false);
+  const [claimError, setClaimError] = useState<string | null>(null);
 
   const fullLink = `${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/u/${shareLink}`;
   const shareText = `Dime tus secretos anónimos en Xposed 🤫: ${fullLink}`;
 
   const handleShare = (platform: string) => {
-    onCopy(); // Copiar siempre por si acaso
-    
+    onCopy();
+
     switch(platform) {
       case 'WhatsApp':
         window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
@@ -483,15 +486,24 @@ function LinkPanel({ shareLink, onCopy, copied, todayCount = 0, telegramId }: { 
   const claimReward = async () => {
     if (todayCount < MISSION_GOAL || claiming || claimed) return;
     setClaiming(true);
+    setClaimError(null);
     try {
       const res = await fetch('/api/mission/claim', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ telegram_id: telegramId })
       });
-      if (res.ok) setClaimed(true);
-    } catch (e) {
-      console.error(e);
+      const data = await res.json();
+      if (res.ok) {
+        setClaimed(true);
+        onClaim?.();
+      } else if (data.error === 'Mission already completed today') {
+        setClaimed(true);
+      } else {
+        setClaimError(data.error || 'Error al reclamar');
+      }
+    } catch {
+      setClaimError('Error de conexión');
     } finally {
       setClaiming(false);
     }
@@ -554,7 +566,7 @@ function LinkPanel({ shareLink, onCopy, copied, todayCount = 0, telegramId }: { 
         </div>
         <div style={{ fontFamily: XP.fDisp, fontSize: 17, lineHeight: 1.15 }}>
           recibe 5 secretos hoy<br/>
-          <span style={{ color: XP.acid }}>+50 🪙 tokens gratis</span>
+          <span style={{ color: XP.acid }}>+100 🪙 tokens gratis</span>
         </div>
         
         <div style={{ marginTop: 10, height: 5, borderRadius: 3, background: XP.bg, overflow: 'hidden', position: 'relative' }}>
@@ -564,7 +576,7 @@ function LinkPanel({ shareLink, onCopy, copied, todayCount = 0, telegramId }: { 
         <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <XPMonoLabel size={9}>{todayCount} / {MISSION_GOAL}</XPMonoLabel>
           {todayCount >= MISSION_GOAL ? (
-            <button 
+            <button
               onClick={claimReward}
               disabled={claiming || claimed}
               style={{
@@ -574,12 +586,17 @@ function LinkPanel({ shareLink, onCopy, copied, todayCount = 0, telegramId }: { 
                 fontFamily: XP.fMono, fontSize: 9, fontWeight: 700, cursor: 'pointer'
               }}
             >
-              {claimed ? 'RECLAMADO' : claiming ? 'PROCESANDO...' : 'RECLAMAR 🪙'}
+              {claimed ? '✓ RECLAMADO' : claiming ? 'PROCESANDO...' : 'RECLAMAR 🪙'}
             </button>
           ) : (
             <XPMonoLabel size={9} color={XP.inkMuted}>FALTAN {MISSION_GOAL - todayCount}</XPMonoLabel>
           )}
         </div>
+        {claimError && (
+          <div style={{ marginTop: 6 }}>
+            <XPMonoLabel size={8} color={XP.hot}>⚠ {claimError}</XPMonoLabel>
+          </div>
+        )}
       </div>
     </div>
   );
