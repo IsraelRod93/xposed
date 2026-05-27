@@ -436,21 +436,6 @@ function MissionPanel({ mission, claiming, onClaim }: {
             {claiming ? 'procesando...' : progress >= active.goal ? `reclamar +${active.reward} 🪙` : `faltan ${active.goal - progress}`}
           </button>
 
-          {/* Upcoming missions preview */}
-          {completedCount < total - 1 && (
-            <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${XP.line}` }}>
-              <XPMonoLabel size={8} color={XP.inkFaint}>PRÓXIMAS</XPMonoLabel>
-              <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
-                {(claimed || []).map((id: string) => (
-                  <span key={id} style={{
-                    padding: '3px 8px', borderRadius: 6,
-                    background: `${XP.acid}22`, border: `1px solid ${XP.acid}44`,
-                    fontFamily: XP.fMono, fontSize: 9, color: XP.acid,
-                  }}>✓ completada</span>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       ) : null}
     </div>
