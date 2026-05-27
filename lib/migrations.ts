@@ -18,3 +18,14 @@ export async function ensureDisplayNameColumn() {
   if (!sql) return;
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS display_name TEXT`;
 }
+
+export async function ensureLinkChangesColumn() {
+  if (!sql) return;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS link_changes INTEGER DEFAULT 0`;
+}
+
+export async function ensureMissionsColumns() {
+  if (!sql) return;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS missions_claimed_today TEXT DEFAULT ''`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS missions_reset_date DATE`;
+}

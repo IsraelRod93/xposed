@@ -31,6 +31,8 @@ export default function InboxPage() {
   const [user, setUser] = useState<any>(null);
   const [tab, setTab] = useState('inbox');
   const [copied, setCopied] = useState(false);
+  const [mission, setMission] = useState<any>(null);
+  const [missionClaiming, setMissionClaiming] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -66,6 +68,10 @@ export default function InboxPage() {
     }
   }, [tab]);
 
+  useEffect(() => {
+    if (user?.id) fetchMission(user.id);
+  }, [user]);
+
   async function fetchInbox(telegramId: number) {
     try {
       const res = await fetch(`/api/inbox/${telegramId}`);
@@ -80,6 +86,30 @@ export default function InboxPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function fetchMission(telegramId: number) {
+    try {
+      const res = await fetch(`/api/mission?telegram_id=${telegramId}`);
+      if (res.ok) setMission(await res.json());
+    } catch {}
+  }
+
+  async function claimMission(missionId: string, telegramId: number) {
+    if (missionClaiming) return;
+    setMissionClaiming(true);
+    try {
+      const res = await fetch('/api/mission/claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telegram_id: telegramId, mission_id: missionId }),
+      });
+      if (res.ok) {
+        await fetchMission(telegramId);
+        await fetchInbox(telegramId);
+      }
+    } catch {}
+    finally { setMissionClaiming(false); }
   }
 
   async function fetchRanking() {
@@ -161,64 +191,62 @@ export default function InboxPage() {
         </div>
       </div>
 
-      {/* HERO — your status */}
-      <div style={{ padding: '18px 18px 0', position: 'relative', zIndex: 2 }}>
-        <div style={{
-          position: 'relative', padding: '18px 18px 16px',
-          background: `linear-gradient(135deg, ${XP.surface}, ${XP.surface2})`,
-          border: `1px solid ${XP.line}`, borderRadius: 22, overflow: 'hidden',
-        }}>
+      {/* HERO — solo visible en inbox */}
+      {tab === 'inbox' && (
+        <div style={{ padding: '18px 18px 0', position: 'relative', zIndex: 2 }}>
           <div style={{
-            position: 'absolute', top: 0, left: 0, right: 0, height: 1,
-            background: `linear-gradient(90deg, transparent, ${XP.acid}, transparent)`,
-            opacity: 0.6, animation: 'xp-scan 4s linear infinite',
-          }} />
-
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <XPMonoLabel size={9}>TU XPOSURE</XPMonoLabel>
-            <XPTierChip tier={stats.weekly > 50 ? 'gold' : 'silver'} percentile={3} compact />
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, marginTop: 8 }}>
-            <div style={{ fontFamily: XP.fDisp, fontSize: 62, lineHeight: 0.85, color: XP.ink }}>
-              <XPCounter to={messages.length} />
-            </div>
-            <div style={{ marginBottom: 8 }}>
-              <div style={{ fontFamily: XP.fSerif, fontStyle: 'italic', fontSize: 18, color: XP.acid, lineHeight: 1 }}>
-                secretos
-              </div>
-              <div style={{ marginTop: 4 }}>
-                <XPMonoLabel size={9}>+{stats.weekly} ESTA SEMANA</XPMonoLabel>
-              </div>
-            </div>
-          </div>
-
-          {/* progression bar to next tier */}
-          <div style={{ marginTop: 14 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-              <XPMonoLabel size={9}>ACTUAL</XPMonoLabel>
-              <XPMonoLabel size={9} color={XP.diamond}>PRÓXIMO NIVEL</XPMonoLabel>
-            </div>
-            <div style={{ height: 5, borderRadius: 3, background: XP.bg, overflow: 'hidden', position: 'relative' }}>
-              <div style={{
-                position: 'absolute', inset: 0, width: `${Math.min(100, (stats.weekly / 100) * 100)}%`,
-                background: `linear-gradient(90deg, ${XP.gold}, ${XP.diamond})`,
-                borderRadius: 3,
-              }} />
-            </div>
-          </div>
-
-          {/* mini stat row */}
-          <div style={{
-            marginTop: 14, display: 'flex', gap: 8,
+            position: 'relative', padding: '18px 18px 16px',
+            background: `linear-gradient(135deg, ${XP.surface}, ${XP.surface2})`,
+            border: `1px solid ${XP.line}`, borderRadius: 22, overflow: 'hidden',
           }}>
-            <MiniBadge icon="🔥" value={userData?.streak_count?.toString() || '0'} label="días" />
-            <MiniBadge icon="#" value={stats.rank?.toString() || '?'} label="RANK" color={XP.acid} />
-            <MiniBadge icon="◆" value={stats.weekly > 100 ? 'LEGEND' : stats.weekly > 50 ? 'GOLD' : stats.weekly > 10 ? 'SILVER' : 'BRONCE'} label="tier" color={XP.gold} />
-            <MiniBadge icon="🪙" value={userData?.stars?.toString() || '0'} label="tokens" color={XP.gold} />
+            <div style={{
+              position: 'absolute', top: 0, left: 0, right: 0, height: 1,
+              background: `linear-gradient(90deg, transparent, ${XP.acid}, transparent)`,
+              opacity: 0.6, animation: 'xp-scan 4s linear infinite',
+            }} />
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <XPMonoLabel size={9}>TU XPOSURE</XPMonoLabel>
+              <XPTierChip tier={stats.weekly > 50 ? 'gold' : 'silver'} percentile={3} compact />
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, marginTop: 8 }}>
+              <div style={{ fontFamily: XP.fDisp, fontSize: 62, lineHeight: 0.85, color: XP.ink }}>
+                <XPCounter to={messages.length} />
+              </div>
+              <div style={{ marginBottom: 8 }}>
+                <div style={{ fontFamily: XP.fSerif, fontStyle: 'italic', fontSize: 18, color: XP.acid, lineHeight: 1 }}>
+                  secretos
+                </div>
+                <div style={{ marginTop: 4 }}>
+                  <XPMonoLabel size={9}>+{stats.weekly} ESTA SEMANA</XPMonoLabel>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ marginTop: 14 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                <XPMonoLabel size={9}>ACTUAL</XPMonoLabel>
+                <XPMonoLabel size={9} color={XP.diamond}>PRÓXIMO NIVEL</XPMonoLabel>
+              </div>
+              <div style={{ height: 5, borderRadius: 3, background: XP.bg, overflow: 'hidden', position: 'relative' }}>
+                <div style={{
+                  position: 'absolute', inset: 0, width: `${Math.min(100, (stats.weekly / 100) * 100)}%`,
+                  background: `linear-gradient(90deg, ${XP.gold}, ${XP.diamond})`,
+                  borderRadius: 3,
+                }} />
+              </div>
+            </div>
+
+            <div style={{ marginTop: 14, display: 'flex', gap: 8 }}>
+              <MiniBadge icon="🔥" value={userData?.streak_count?.toString() || '0'} label="días" />
+              <MiniBadge icon="#" value={stats.rank?.toString() || '?'} label="RANK" color={XP.acid} />
+              <MiniBadge icon="◆" value={stats.weekly > 100 ? 'LEGEND' : stats.weekly > 50 ? 'GOLD' : stats.weekly > 10 ? 'SILVER' : 'BRONCE'} label="tier" color={XP.gold} />
+              <MiniBadge icon="🪙" value={userData?.stars?.toString() || '0'} label="tokens" color={XP.gold} />
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* TABS */}
       <div style={{
@@ -227,7 +255,7 @@ export default function InboxPage() {
       }}>
         {[
           { id: 'inbox', label: 'Inbox', count: messages.filter(m => !m.is_clue_revealed).length || undefined },
-          { id: 'rank',  label: 'Ranking' },
+          { id: 'rank',  label: 'Misiones', count: mission && !mission.allDone ? (mission.total - mission.claimed.length) : undefined },
           { id: 'link',  label: 'Mi link' },
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} style={{
@@ -265,15 +293,22 @@ export default function InboxPage() {
             messages.map(m => <SealedEnvelope key={m.id} msg={m} telegramId={user?.id} onReveal={() => fetchInbox(user.id)} />)
           )
         )}
-        {tab === 'rank'  && <RankingMini ranking={ranking} currentUserId={user?.id} />}
+        {tab === 'rank' && (
+          <>
+            <MissionPanel
+              mission={mission}
+              claiming={missionClaiming}
+              onClaim={(id) => claimMission(id, user?.id)}
+            />
+            <RankingMini ranking={ranking} currentUserId={user?.id} />
+          </>
+        )}
         {tab === 'link'  && (
           <LinkPanel
             shareLink={userData?.share_link}
             onCopy={copyLink}
             copied={copied}
-            todayCount={stats.today}
             telegramId={user?.id}
-            onClaim={() => fetchInbox(user.id)}
             currentDisplayName={userData?.display_name || ''}
           />
         )}
@@ -281,6 +316,148 @@ export default function InboxPage() {
     </div>
   );
 }
+
+// ─── Mission Panel ────────────────────────────────────────────────────────────
+
+function MissionPanel({ mission, claiming, onClaim }: {
+  mission: any;
+  claiming: boolean;
+  onClaim: (id: string) => void;
+}) {
+  if (!mission) return null;
+
+  const { active, claimed, total, progress, allDone } = mission;
+  const completedCount = claimed?.length ?? 0;
+
+  return (
+    <div style={{ marginBottom: 14 }}>
+      {/* Progress strip */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 8,
+        marginBottom: 12, padding: '10px 14px',
+        background: XP.surface, border: `1px solid ${XP.line}`, borderRadius: 14,
+      }}>
+        <XPMonoLabel size={9}>MISIONES HOY</XPMonoLabel>
+        <div style={{ flex: 1, height: 4, background: XP.bg, borderRadius: 2, overflow: 'hidden' }}>
+          <div style={{
+            height: '100%', borderRadius: 2,
+            width: `${(completedCount / total) * 100}%`,
+            background: allDone
+              ? `linear-gradient(90deg, ${XP.gold}, ${XP.acid})`
+              : XP.acid,
+            transition: 'width .4s ease',
+          }} />
+        </div>
+        <XPMonoLabel size={9} color={allDone ? XP.gold : XP.inkMuted}>
+          {completedCount}/{total}
+        </XPMonoLabel>
+      </div>
+
+      {/* Active mission card */}
+      {allDone ? (
+        <div style={{
+          padding: '28px 20px', textAlign: 'center',
+          border: `1px solid ${XP.gold}44`, borderRadius: 20,
+          background: `${XP.gold}0D`,
+        }}>
+          <div style={{ fontSize: 32, marginBottom: 10 }}>🏆</div>
+          <div style={{ fontFamily: XP.fDisp, fontSize: 22, color: XP.gold }}>
+            ¡Misiones completadas!
+          </div>
+          <div style={{ marginTop: 6 }}>
+            <XPMonoLabel size={9} color={XP.inkMuted}>Vuelve mañana para nuevas misiones</XPMonoLabel>
+          </div>
+        </div>
+      ) : active ? (
+        <div style={{
+          padding: '18px 18px 16px',
+          background: `linear-gradient(135deg, ${XP.surface}, ${XP.surface2})`,
+          border: `1.5px solid ${XP.acid}55`, borderRadius: 20, overflow: 'hidden',
+          position: 'relative',
+          boxShadow: `0 0 30px -10px ${XP.acid}44`,
+        }}>
+          <div style={{
+            position: 'absolute', top: 0, left: 0, right: 0, height: 1,
+            background: `linear-gradient(90deg, transparent, ${XP.acid}, transparent)`,
+            animation: 'xp-scan 3s linear infinite',
+          }} />
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <span style={{ fontSize: 22 }}>🎯</span>
+            <div>
+              <XPMonoLabel size={9} color={XP.acid}>MISIÓN ACTIVA</XPMonoLabel>
+              <div style={{ fontFamily: XP.fDisp, fontSize: 19, lineHeight: 1.1, marginTop: 2 }}>
+                {active.label}
+              </div>
+            </div>
+            <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
+              <div style={{ fontFamily: XP.fDisp, fontSize: 22, color: XP.gold, lineHeight: 1 }}>
+                +{active.reward}
+              </div>
+              <XPMonoLabel size={8} color={XP.gold}>🪙 tokens</XPMonoLabel>
+            </div>
+          </div>
+
+          <div style={{ marginTop: 4, color: XP.inkDim, fontSize: 13 }}>{active.desc}</div>
+
+          {/* Progress bar */}
+          <div style={{ marginTop: 14 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+              <XPMonoLabel size={8} color={XP.inkMuted}>PROGRESO</XPMonoLabel>
+              <XPMonoLabel size={8} color={progress >= active.goal ? XP.acid : XP.inkMuted}>
+                {progress} / {active.goal}
+              </XPMonoLabel>
+            </div>
+            <div style={{ height: 6, background: XP.bg, borderRadius: 3, overflow: 'hidden' }}>
+              <div style={{
+                height: '100%', borderRadius: 3,
+                width: `${Math.min(100, (progress / active.goal) * 100)}%`,
+                background: progress >= active.goal
+                  ? `linear-gradient(90deg, ${XP.acid}, ${XP.gold})`
+                  : XP.acid,
+                transition: 'width .4s ease',
+              }} />
+            </div>
+          </div>
+
+          <button
+            onClick={() => onClaim(active.id)}
+            disabled={progress < active.goal || claiming}
+            style={{
+              marginTop: 14, width: '100%', height: 46, borderRadius: 12, border: 'none',
+              background: progress >= active.goal ? XP.acid : XP.surface2,
+              color: progress >= active.goal ? XP.bg : XP.inkFaint,
+              fontFamily: XP.fDisp, fontSize: 17,
+              cursor: progress >= active.goal ? 'pointer' : 'default',
+              boxShadow: progress >= active.goal ? `inset 0 -2px 0 ${XP.acidDeep}` : 'none',
+              transition: 'all .2s',
+            }}
+          >
+            {claiming ? 'procesando...' : progress >= active.goal ? `reclamar +${active.reward} 🪙` : `faltan ${active.goal - progress}`}
+          </button>
+
+          {/* Upcoming missions preview */}
+          {completedCount < total - 1 && (
+            <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${XP.line}` }}>
+              <XPMonoLabel size={8} color={XP.inkFaint}>PRÓXIMAS</XPMonoLabel>
+              <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
+                {(claimed || []).map((id: string) => (
+                  <span key={id} style={{
+                    padding: '3px 8px', borderRadius: 6,
+                    background: `${XP.acid}22`, border: `1px solid ${XP.acid}44`,
+                    fontFamily: XP.fMono, fontSize: 9, color: XP.acid,
+                  }}>✓ completada</span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+// ─── Mini Badge ───────────────────────────────────────────────────────────────
 
 function MiniBadge({ icon, value, label, color = XP.ink }: { icon: string, value: string, label: string, color?: string }) {
   return (
@@ -455,14 +632,8 @@ function RankingMini({ ranking, currentUserId }: { ranking: any[], currentUserId
   );
 }
 
-function LinkPanel({ shareLink, onCopy, copied, todayCount = 0, telegramId, onClaim, currentDisplayName }: { shareLink?: string, onCopy: () => void, copied: boolean, todayCount?: number, telegramId?: number, onClaim?: () => void, currentDisplayName?: string }) {
+function LinkPanel({ shareLink, onCopy, copied, telegramId, currentDisplayName }: { shareLink?: string, onCopy: () => void, copied: boolean, telegramId?: number, currentDisplayName?: string }) {
   const router = useRouter();
-  const MISSION_GOAL = 5;
-  const MISSION_REWARD = 100;
-  const progress = Math.min(100, (todayCount / MISSION_GOAL) * 100);
-  const [claiming, setClaiming] = useState(false);
-  const [claimed, setClaimed] = useState(false);
-  const [claimError, setClaimError] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState(currentDisplayName || '');
   const [savingName, setSavingName] = useState(false);
   const [nameSaved, setNameSaved] = useState(false);
@@ -510,32 +681,6 @@ function LinkPanel({ shareLink, onCopy, copied, todayCount = 0, telegramId, onCl
       setNameError('Error de conexión');
     } finally {
       setSavingName(false);
-    }
-  };
-
-  const claimReward = async () => {
-    if (todayCount < MISSION_GOAL || claiming || claimed) return;
-    setClaiming(true);
-    setClaimError(null);
-    try {
-      const res = await fetch('/api/mission/claim', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ telegram_id: telegramId })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setClaimed(true);
-        onClaim?.();
-      } else if (data.error === 'Mission already completed today') {
-        setClaimed(true);
-      } else {
-        setClaimError(data.error || 'Error al reclamar');
-      }
-    } catch {
-      setClaimError('Error de conexión');
-    } finally {
-      setClaiming(false);
     }
   };
 
@@ -640,48 +785,6 @@ function LinkPanel({ shareLink, onCopy, copied, todayCount = 0, telegramId, onCl
         </div>
       </div>
 
-      <div style={{
-        padding: 16, background: `linear-gradient(135deg, ${XP.acid}1A, transparent)`,
-        border: `1px solid ${XP.acid}44`, borderRadius: 18,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-          <span style={{ fontSize: 16 }}>🎁</span>
-          <XPMonoLabel size={10} color={XP.acid}>MISIÓN DEL DÍA</XPMonoLabel>
-        </div>
-        <div style={{ fontFamily: XP.fDisp, fontSize: 17, lineHeight: 1.15 }}>
-          recibe 5 secretos hoy<br/>
-          <span style={{ color: XP.acid }}>+100 🪙 tokens gratis</span>
-        </div>
-        
-        <div style={{ marginTop: 10, height: 5, borderRadius: 3, background: XP.bg, overflow: 'hidden', position: 'relative' }}>
-          <div style={{ width: `${progress}%`, height: '100%', background: XP.acid, borderRadius: 3, transition: 'width 0.5s ease' }} />
-        </div>
-        
-        <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <XPMonoLabel size={9}>{todayCount} / {MISSION_GOAL}</XPMonoLabel>
-          {todayCount >= MISSION_GOAL ? (
-            <button
-              onClick={claimReward}
-              disabled={claiming || claimed}
-              style={{
-                background: claimed ? XP.surface2 : XP.acid,
-                color: claimed ? XP.inkDim : XP.bg,
-                border: 'none', padding: '4px 10px', borderRadius: 6,
-                fontFamily: XP.fMono, fontSize: 9, fontWeight: 700, cursor: 'pointer'
-              }}
-            >
-              {claimed ? '✓ RECLAMADO' : claiming ? 'PROCESANDO...' : 'RECLAMAR 🪙'}
-            </button>
-          ) : (
-            <XPMonoLabel size={9} color={XP.inkMuted}>FALTAN {MISSION_GOAL - todayCount}</XPMonoLabel>
-          )}
-        </div>
-        {claimError && (
-          <div style={{ marginTop: 6 }}>
-            <XPMonoLabel size={8} color={XP.hot}>⚠ {claimError}</XPMonoLabel>
-          </div>
-        )}
-      </div>
     </div>
   );
 }
