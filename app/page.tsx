@@ -264,7 +264,7 @@ export default function InboxPage() {
       }}>
         {[
           { id: 'inbox', label: 'Inbox', count: messages.filter(m => !m.is_clue_revealed).length || undefined },
-          { id: 'rank',  label: 'Ranking' },
+          { id: 'rank',  label: 'Misiones' },
           { id: 'link',  label: 'Mi link' },
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} style={{
