@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { Api } from "grammy";
 
 const PACKAGES: Record<string, { stars: number; xtr: number; label: string }> = {
-  "100":  { stars: 100,  xtr: 1,  label: "100 Estrellas Xposed"  },
-  "500":  { stars: 500,  xtr: 5,  label: "500 Estrellas Xposed"  },
-  "1000": { stars: 1000, xtr: 10, label: "1000 Estrellas Xposed" },
+  "100":  { stars: 100,  xtr: 1,  label: "100 Tokens Xposed"  },
+  "500":  { stars: 500,  xtr: 5,  label: "500 Tokens Xposed"  },
+  "1000": { stars: 1000, xtr: 10, label: "1000 Tokens Xposed" },
 };
 
 export async function POST(req: NextRequest) {
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
 
     const url = await api.createInvoiceLink(
       pkg.label,
-      `Recibe ${pkg.stars} estrellas para revelar pistas en Xposed`,
+      `Recibe ${pkg.stars} tokens para revelar pistas en Xposed`,
       payload,
       "",    // provider_token: empty string for Telegram Stars (XTR)
       "XTR",

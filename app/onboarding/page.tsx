@@ -90,7 +90,7 @@ export default function OnboardingPage() {
         <div style={{
           marginTop: 14, color: XP.inkDim, fontSize: 15, lineHeight: 1.4, maxWidth: 290,
         }}>
-          Crea tu link. Mándalo a tus historias. Recibe secretos anónimos. Paga ★ para descubrir quién fue.
+          Crea tu link. Mándalo a tus historias. Recibe secretos anónimos. Usa 🪙 tokens para descubrir quién fue.
         </div>
       </div>
 

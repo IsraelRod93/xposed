@@ -215,7 +215,7 @@ export default function InboxPage() {
             <MiniBadge icon="🔥" value={userData?.streak_count?.toString() || '0'} label="días" />
             <MiniBadge icon="#" value={stats.rank?.toString() || '?'} label="RANK" color={XP.acid} />
             <MiniBadge icon="◆" value={stats.weekly > 100 ? 'LEGEND' : stats.weekly > 50 ? 'GOLD' : stats.weekly > 10 ? 'SILVER' : 'BRONCE'} label="tier" color={XP.gold} />
-            <MiniBadge icon="★" value={userData?.stars?.toString() || '0'} label="stars" color={XP.gold} />
+            <MiniBadge icon="🪙" value={userData?.stars?.toString() || '0'} label="tokens" color={XP.gold} />
           </div>
         </div>
       </div>
@@ -554,7 +554,7 @@ function LinkPanel({ shareLink, onCopy, copied, todayCount = 0, telegramId }: { 
         </div>
         <div style={{ fontFamily: XP.fDisp, fontSize: 17, lineHeight: 1.15 }}>
           recibe 5 secretos hoy<br/>
-          <span style={{ color: XP.acid }}>+50 ★ gratis</span>
+          <span style={{ color: XP.acid }}>+50 🪙 tokens gratis</span>
         </div>
         
         <div style={{ marginTop: 10, height: 5, borderRadius: 3, background: XP.bg, overflow: 'hidden', position: 'relative' }}>
@@ -574,7 +574,7 @@ function LinkPanel({ shareLink, onCopy, copied, todayCount = 0, telegramId }: { 
                 fontFamily: XP.fMono, fontSize: 9, fontWeight: 700, cursor: 'pointer'
               }}
             >
-              {claimed ? 'RECLAMADO' : claiming ? 'PROCESANDO...' : 'RECLAMAR ★'}
+              {claimed ? 'RECLAMADO' : claiming ? 'PROCESANDO...' : 'RECLAMAR 🪙'}
             </button>
           ) : (
             <XPMonoLabel size={9} color={XP.inkMuted}>FALTAN {MISSION_GOAL - todayCount}</XPMonoLabel>

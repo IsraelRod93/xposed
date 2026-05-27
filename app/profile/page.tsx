@@ -46,7 +46,7 @@ export default function ProfilePage() {
 
   const badges = [
     { icon: '🔥', label: 'INFERNO',    sub: 'racha 14d', owned: (userData?.streak_count >= 14), color: XP.hot },
-    { icon: '👁', label: 'OJO',        sub: '5000 ★ usadas', owned: (userData?.stars_spent >= 5000), color: XP.acid },
+    { icon: '👁', label: 'OJO',        sub: '5000 🪙 usados', owned: (userData?.stars_spent >= 5000), color: XP.acid },
     { icon: '✦',  label: 'POPULAR',    sub: 'top 5% MX',  owned: true,  color: XP.gold },
     { icon: '✉',  label: 'BUZÓN PLENO',sub: '247 secretos', owned: true, color: XP.diamond },
     { icon: '◍',  label: 'NOCTURNO',   sub: 'recibe 3am', owned: false, color: XP.amethyst },
@@ -135,7 +135,7 @@ export default function ProfilePage() {
           />
           <BigStat
             value={userData?.stars?.toString() || '0'}
-            label="ESTRELLAS"
+            label="TOKENS"
             extra="saldo actual"
             color={XP.gold}
             glyph="◆"

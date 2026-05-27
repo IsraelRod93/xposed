@@ -176,7 +176,7 @@ export function XPTierChip({ tier = 'gold', percentile, compact = false }: XPTie
   );
 }
 
-// --- Star Chip ---
+// --- Token Chip (in-app currency) ---
 interface XPStarChipProps {
   amount?: number;
   color?: string;
@@ -190,10 +190,7 @@ export function XPStarChip({ amount = 50, color = XP.gold }: XPStarChipProps) {
       border: `1px solid ${color}55`, borderRadius: 999,
       fontFamily: XP.fMono, fontSize: 11, fontWeight: 600, color,
     }}>
-      <svg width="11" height="11" viewBox="0 0 12 12" fill={color}>
-        <path d="M6 .5l1.6 3.3 3.7.5-2.7 2.6.6 3.6L6 8.9 2.7 10.5l.6-3.6L.6 4.3l3.7-.5z"/>
-      </svg>
-      {amount}
+      🪙 {amount}
     </span>
   );
 }

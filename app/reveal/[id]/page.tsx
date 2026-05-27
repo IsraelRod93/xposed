@@ -289,13 +289,13 @@ function NoStarsState({
           fontSize: 34,
         }}>★</div>
         <div style={{ fontFamily: XP.fDisp, fontSize: 36, lineHeight: 0.95, color: XP.ink }}>
-          sin estrellas
+          sin tokens
         </div>
         <div style={{
           fontFamily: XP.fSerif, fontStyle: 'italic', fontSize: 16,
           color: XP.inkDim, marginTop: 8,
         }}>
-          necesitas {REVEAL_COST} ★ para revelar esta pista
+          necesitas {REVEAL_COST} 🪙 tokens para revelar esta pista
         </div>
 
         {/* Balance badge */}
@@ -309,9 +309,9 @@ function NoStarsState({
             fontFamily: XP.fMono, fontWeight: 700, fontSize: 13,
             color: (currentStars ?? 0) < REVEAL_COST ? XP.hot : XP.gold,
           }}>
-            {currentStars ?? '…'} ★
+            {currentStars ?? '…'} 🪙
           </span>
-          <XPMonoLabel size={9} color={XP.inkFaint}>/ necesitas {REVEAL_COST} ★</XPMonoLabel>
+          <XPMonoLabel size={9} color={XP.inkFaint}>/ necesitas {REVEAL_COST} 🪙</XPMonoLabel>
         </div>
       </div>
 
@@ -363,7 +363,7 @@ function NoStarsState({
               {/* Right: what you get */}
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontFamily: XP.fDisp, fontSize: 20, color: XP.gold, lineHeight: 1 }}>
-                  {pkg.stars} ★
+                  {pkg.stars} 🪙
                 </div>
                 <div style={{ marginTop: 2 }}>
                   <XPMonoLabel size={8} color={XP.inkMuted}>RECIBES</XPMonoLabel>
@@ -383,7 +383,7 @@ function NoStarsState({
           <span style={{ fontSize: 20 }}>🎁</span>
           <div style={{ flex: 1 }}>
             <div style={{ fontFamily: XP.fDisp, fontSize: 15, lineHeight: 1.1, color: XP.ink }}>
-              gana {REVEAL_COST} ★ gratis
+              gana {REVEAL_COST} 🪙 tokens gratis
             </div>
             <div style={{ marginTop: 3, color: XP.inkDim, fontSize: 12 }}>
               recibe 5 secretos hoy → misión completada

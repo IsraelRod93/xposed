@@ -101,7 +101,7 @@ bot.command("start", async (ctx) => {
 
     await ctx.reply(
       `¡Bienvenido a Xposed, @${username}! 🤫\n\n` +
-      `Te hemos regalado 100 ★ estrellas para empezar.\n\n` +
+      `Te hemos regalado 100 🪙 tokens para empezar.\n\n` +
       `Tu enlace personal para recibir secretos es:\n` +
       `👉 ${personalLink}\n\n` +
       `Compártelo en tu bio de Instagram o TikTok.`,
@@ -160,7 +160,7 @@ bot.on("message:successful_payment", async (ctx) => {
     `;
 
     await ctx.reply(
-      `✅ ¡Recibiste ${amount} ★ estrellas!\n\nYa puedes revelar pistas en tu inbox.`,
+      `✅ ¡Recibiste ${amount} 🪙 tokens!\n\nYa puedes revelar pistas en tu inbox.`,
       {
         reply_markup: {
           inline_keyboard: [[{
