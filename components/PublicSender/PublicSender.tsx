@@ -127,7 +127,7 @@ export default function PublicSender({ initialReceiver }: { initialReceiver?: an
   return (
     <div style={{
       minHeight: '100vh', background: XP.bg, color: XP.ink,
-      fontFamily: XP.fBody, position: 'relative', overflow: 'hidden',
+      fontFamily: XP.fBody, position: 'relative', overflowX: 'hidden',
     }}>
       {/* ambient lime glow blob */}
       <div style={{
@@ -324,7 +324,7 @@ export default function PublicSender({ initialReceiver }: { initialReceiver?: an
 
           {/* live counter */}
           <div style={{
-            padding: '16px 18px calc(28px + env(safe-area-inset-bottom, 0px))',
+            padding: '16px 18px calc(90px + env(safe-area-inset-bottom, 0px))',
             display: 'flex', flexDirection: 'column', alignItems: 'center',
             gap: 6, position: 'relative', zIndex: 2,
           }}>
