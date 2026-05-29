@@ -127,17 +127,15 @@ bot.command("start", async (ctx) => {
       ? `¡Bienvenido a Xposed, @${username}! 🤫\n\n` +
         `Te hemos regalado ${refCode ? '150' : '100'} 🪙 tokens para empezar${refCode ? ' (50 extra por invitación 🎁)' : ''}.\n\n` +
         `Tu enlace personal:\n👉 ${personalLink}\n\n` +
-        `Invita amigos y ambos ganan 50 🪙:\n🔗 ${referralLink}`
+        `Invita amigos y ambos ganan 50 🪙:\n🔗 ${referralLink}\n\n` +
+        `💸 ¿Quieres ganar comisión? → /affiliate`
       : `¡Hola de nuevo, @${username}! 👋\n\n` +
         `Tu enlace personal:\n👉 ${personalLink}`;
-
-    const affiliateUrl = `tg://settings/stars_affiliate_programs`;
 
     await ctx.reply(welcomeMsg, {
       reply_markup: {
         inline_keyboard: [
           [{ text: "Ver mi Inbox 📩", web_app: { url: appUrl } }],
-          [{ text: "💸 Ganar comisión como afiliado", url: affiliateUrl }],
         ]
       }
     });
@@ -148,17 +146,16 @@ bot.command("start", async (ctx) => {
 });
 
 bot.command("affiliate", async (ctx) => {
-  const affiliateUrl = `tg://settings/stars_affiliate_programs`;
   await ctx.reply(
     `💸 *Programa de Afiliados Xposed*\n\n` +
     `Gana el *90% de comisión* durante 3 meses por cada pago que generen los usuarios que traigas.\n\n` +
-    `Toca el botón para unirte:`,
-    {
-      parse_mode: "Markdown",
-      reply_markup: {
-        inline_keyboard: [[{ text: "🚀 Unirme como afiliado", url: affiliateUrl }]]
-      }
-    }
+    `*Cómo unirte:*\n` +
+    `1. Abre Telegram → Configuración\n` +
+    `2. Toca *Telegram Stars*\n` +
+    `3. Busca *Programas de afiliados*\n` +
+    `4. Busca @MyXposed_bot y únete\n\n` +
+    `_El programa estará disponible en las próximas 24-48h_`,
+    { parse_mode: "Markdown" }
   );
 });
 
