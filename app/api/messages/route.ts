@@ -85,6 +85,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Tu mensaje contiene contenido no permitido." }, { status: 400 });
     }
 
+    await ensureMessageColumns().catch(() => {});
+
     const ip = getClientIP(req);
 
     const recentCount = await sql`
@@ -102,8 +104,6 @@ export async function POST(req: NextRequest) {
     const sender_country = detectCountry(req, clientCountry);
     const sender_city = detectCity(req);
     const sender_platform = detectPlatform(req);
-
-    await ensureMessageColumns().catch(() => {});
 
     const users = await sql`
       SELECT telegram_id FROM users WHERE share_link = ${share_link}
