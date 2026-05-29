@@ -282,49 +282,9 @@ export default function PublicSender({ initialReceiver }: { initialReceiver?: an
             </div>
           </div>
 
-          {/* SEND */}
-          <div style={{ padding: '14px 18px 0', position: 'relative', zIndex: 2 }}>
-            <button 
-              onClick={send} 
-              disabled={!content.trim() || isSending} 
-              style={{
-                width: '100%', height: 60, borderRadius: 18, border: 'none',
-                background: content.trim() ? XP.acid : XP.surface2,
-                color: content.trim() ? XP.bg : XP.inkMuted,
-                fontFamily: XP.fDisp, fontSize: 22, letterSpacing: '-0.01em',
-                cursor: content.trim() ? 'pointer' : 'not-allowed',
-                position: 'relative', overflow: 'hidden',
-                boxShadow: content.trim() ? `0 12px 30px -10px ${XP.acid}99, inset 0 -3px 0 ${XP.acidDeep}` : 'none',
-                transition: 'all .15s',
-                opacity: isSending ? 0.7 : 1,
-              }}>
-              <span style={{ position: 'relative', zIndex: 2 }}>{isSending ? 'enviando...' : 'enviar secreto'}</span>
-              {content.trim() && !isSending && (
-                <span style={{
-                  position: 'absolute', top: 0, bottom: 0, width: '40%',
-                  background: `linear-gradient(90deg, transparent, ${XP.ink}55, transparent)`,
-                  animation: 'xp-scan 2.4s linear infinite',
-                }} />
-              )}
-            </button>
-          </div>
-
-          {/* send error */}
-          {sendError && (
-            <div style={{ padding: '8px 18px 0', position: 'relative', zIndex: 2 }}>
-              <div style={{
-                padding: '10px 14px', background: `${XP.hot}0D`,
-                border: `1px solid ${XP.hot}55`, borderRadius: 12,
-                fontFamily: XP.fMono, fontSize: 11, color: XP.hot, textAlign: 'center',
-              }}>
-                ⚠ {sendError}
-              </div>
-            </div>
-          )}
-
           {/* live counter */}
           <div style={{
-            padding: '16px 18px calc(90px + env(safe-area-inset-bottom, 0px))',
+            padding: '16px 18px 24px',
             display: 'flex', flexDirection: 'column', alignItems: 'center',
             gap: 6, position: 'relative', zIndex: 2,
           }}>
@@ -338,7 +298,53 @@ export default function PublicSender({ initialReceiver }: { initialReceiver?: an
               POWERED BY XPOSED · NUNCA SE REVELA TU IDENTIDAD
             </XPMonoLabel>
           </div>
+
+          {/* spacer so content isn't hidden behind fixed send bar */}
+          <div style={{ height: 'calc(84px + env(safe-area-inset-bottom, 20px))' }} />
         </>
+      )}
+
+      {/* FIXED SEND BAR — always above Safari toolbar */}
+      {!sent && (
+        <div style={{
+          position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
+          padding: `10px 18px calc(10px + env(safe-area-inset-bottom, 20px))`,
+          background: `linear-gradient(to top, ${XP.bg} 75%, transparent)`,
+        }}>
+          {sendError && (
+            <div style={{
+              marginBottom: 8, padding: '8px 14px',
+              background: `${XP.hot}0D`, border: `1px solid ${XP.hot}55`,
+              borderRadius: 10, fontFamily: XP.fMono, fontSize: 11,
+              color: XP.hot, textAlign: 'center',
+            }}>
+              ⚠ {sendError}
+            </div>
+          )}
+          <button
+            onClick={send}
+            disabled={!content.trim() || isSending}
+            style={{
+              width: '100%', height: 60, borderRadius: 18, border: 'none',
+              background: content.trim() ? XP.acid : XP.surface2,
+              color: content.trim() ? XP.bg : XP.inkMuted,
+              fontFamily: XP.fDisp, fontSize: 22, letterSpacing: '-0.01em',
+              cursor: content.trim() ? 'pointer' : 'not-allowed',
+              position: 'relative', overflow: 'hidden',
+              boxShadow: content.trim() ? `0 12px 30px -10px ${XP.acid}99, inset 0 -3px 0 ${XP.acidDeep}` : 'none',
+              transition: 'all .15s',
+              opacity: isSending ? 0.7 : 1,
+            }}>
+            <span style={{ position: 'relative', zIndex: 2 }}>{isSending ? 'enviando...' : 'enviar secreto'}</span>
+            {content.trim() && !isSending && (
+              <span style={{
+                position: 'absolute', top: 0, bottom: 0, width: '40%',
+                background: `linear-gradient(90deg, transparent, ${XP.ink}55, transparent)`,
+                animation: 'xp-scan 2.4s linear infinite',
+              }} />
+            )}
+          </button>
+        </div>
       )}
     </div>
   );
