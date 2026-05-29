@@ -131,7 +131,7 @@ bot.command("start", async (ctx) => {
       : `¡Hola de nuevo, @${username}! 👋\n\n` +
         `Tu enlace personal:\n👉 ${personalLink}`;
 
-    const affiliateUrl = `https://t.me/affiliate?bot=${ctx.me.username}`;
+    const affiliateUrl = `tg://resolve?domain=${ctx.me.username}&attach=affiliate`;
 
     await ctx.reply(welcomeMsg, {
       reply_markup: {
@@ -148,7 +148,7 @@ bot.command("start", async (ctx) => {
 });
 
 bot.command("affiliate", async (ctx) => {
-  const affiliateUrl = `https://t.me/affiliate?bot=${ctx.me.username}`;
+  const affiliateUrl = `tg://resolve?domain=${ctx.me.username}&attach=affiliate`;
   await ctx.reply(
     `💸 *Programa de Afiliados Xposed*\n\n` +
     `Gana el *90% de comisión* durante 3 meses por cada pago que generen los usuarios que traigas.\n\n` +
