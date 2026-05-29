@@ -16,12 +16,16 @@ export async function GET(
       SELECT
         u.telegram_id,
         u.username,
+        u.display_name,
         u.streak_count,
-        COUNT(m.id)::int AS message_count
+        u.share_link,
+        COUNT(m.id)::int AS message_count,
+        MAX(m.created_at) AS last_message_at,
+        COUNT(m.id) FILTER (WHERE m.created_at > NOW() - INTERVAL '24 hours')::int AS recent_count
       FROM users u
       LEFT JOIN messages m ON u.telegram_id = m.receiver_id
       WHERE u.share_link = ${shareLink}
-      GROUP BY u.telegram_id, u.username, u.streak_count
+      GROUP BY u.telegram_id, u.username, u.display_name, u.streak_count, u.share_link
     `;
 
     if (users.length === 0) {
@@ -32,14 +36,8 @@ export async function GET(
       SELECT COUNT(*) + 1 AS rank
       FROM users u
       WHERE (
-        SELECT COUNT(*) FROM messages m
-        WHERE m.receiver_id = u.telegram_id
-        AND m.created_at > NOW() - INTERVAL '7 days'
-      ) > (
-        SELECT COUNT(*) FROM messages m2
-        WHERE m2.receiver_id = ${users[0].telegram_id}
-        AND m2.created_at > NOW() - INTERVAL '7 days'
-      )
+        SELECT COUNT(*) FROM messages m WHERE m.receiver_id = u.telegram_id
+      ) > ${users[0].message_count}
     `;
 
     return NextResponse.json({

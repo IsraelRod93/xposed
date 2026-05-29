@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
-import { ensureDisplayNameColumn } from "@/lib/migrations";
 
 export async function GET(req: NextRequest) {
   if (!sql) {
     return NextResponse.json({ error: "Database not configured" }, { status: 500 });
   }
-
-  await ensureDisplayNameColumn();
 
   try {
     const ranking = await sql`
@@ -18,18 +15,17 @@ export async function GET(req: NextRequest) {
         u.stars,
         COUNT(m.id) as message_count
       FROM users u
-      LEFT JOIN messages m ON u.telegram_id = m.receiver_id AND m.created_at > NOW() - INTERVAL '7 days'
+      LEFT JOIN messages m ON u.telegram_id = m.receiver_id
       GROUP BY u.telegram_id, u.username, u.display_name, u.stars
       ORDER BY message_count DESC
-      LIMIT 100
+      LIMIT 10
     `;
 
     const processedRanking = ranking.map((user, index) => {
       let tier = 'bronze';
       if (index < 3) tier = 'legend';
-      else if (index < 10) tier = 'diamond';
-      else if (index < 25) tier = 'gold';
-      else if (index < 50) tier = 'silver';
+      else if (index < 10) tier = 'gold';
+      else if (index < 25) tier = 'silver';
 
       const name = user.display_name ||
         (user.username ? `@${user.username}` : `Usuario ${user.telegram_id.toString().slice(-4)}`);

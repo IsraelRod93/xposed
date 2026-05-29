@@ -8,7 +8,7 @@ type Props = {
 async function getReceiver(link: string) {
   try {
     const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || ''}/api/user/by-link/${link}`, {
-      next: { revalidate: 60 } // Cache for 1 minute
+      cache: 'no-store',
     });
     if (res.ok) {
       return await res.json();
@@ -26,13 +26,13 @@ export async function generateMetadata(
   const { link } = await params;
   const receiver = await getReceiver(link);
   
-  const username = receiver?.username || 'Alguien';
+  const name = receiver?.display_name || (receiver?.username ? `@${receiver.username}` : 'Alguien');
 
   return {
-    title: `Xposed | Mensaje anónimo para @${username}`,
+    title: `Xposed | Mensaje anónimo para ${name}`,
     description: `Dime lo que piensas de mí en secreto. No sabré quién eres. 🤫`,
     openGraph: {
-      title: `Xposed | @${username}`,
+      title: `Xposed | ${name}`,
       description: `Envíame un secreto anónimo. Atrévete. 🚀`,
     },
   };

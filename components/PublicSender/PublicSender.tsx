@@ -20,6 +20,23 @@ const publicPromptRotation = [
   'Una cosa que cambiarías de mí',
 ];
 
+function relativeTime(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'ahora mismo';
+  if (mins < 60) return `${mins} min`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h`;
+  return `${Math.floor(hours / 24)}d`;
+}
+
+function getTierByRank(rank: number): 'legend' | 'gold' | 'silver' | 'bronze' {
+  if (rank <= 3) return 'legend';
+  if (rank <= 10) return 'gold';
+  if (rank <= 25) return 'silver';
+  return 'bronze';
+}
+
 export default function PublicSender({ initialReceiver }: { initialReceiver?: any }) {
   const { link } = useParams();
   const [receiver, setReceiver] = useState<any>(initialReceiver);
@@ -29,6 +46,7 @@ export default function PublicSender({ initialReceiver }: { initialReceiver?: an
   const [focused, setFocused] = useState(false);
   const [loading, setLoading] = useState(!initialReceiver);
   const [isSending, setIsSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!initialReceiver && link) {
@@ -58,6 +76,7 @@ export default function PublicSender({ initialReceiver }: { initialReceiver?: an
   const send = async () => {
     if (!content.trim() || isSending || !receiver) return;
     setIsSending(true);
+    setSendError(null);
 
     const ua = window.navigator.userAgent;
     let os = "Otro";
@@ -80,9 +99,13 @@ export default function PublicSender({ initialReceiver }: { initialReceiver?: an
 
       if (res.ok) {
         setSent(true);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setSendError(data.error || 'No se pudo enviar. Inténtalo de nuevo.');
       }
     } catch (err) {
       console.error(err);
+      setSendError('Error de conexión. Revisa tu internet.');
     } finally {
       setIsSending(false);
     }
@@ -130,7 +153,7 @@ export default function PublicSender({ initialReceiver }: { initialReceiver?: an
         </div>
       </div>
 
-      {sent ? <SentState onReset={() => { setSent(false); setContent(''); }} /> : (
+      {sent ? <SentState onReset={() => { setSent(false); setContent(''); }} referralCode={receiver?.share_link} /> : (
         <>
           {/* RECEIVER CARD */}
           <div style={{ padding: '20px 18px 0', position: 'relative', zIndex: 2 }}>
@@ -147,17 +170,17 @@ export default function PublicSender({ initialReceiver }: { initialReceiver?: an
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontFamily: XP.fDisp, fontSize: 28, color: XP.bg,
                   boxShadow: `0 0 0 2px ${XP.bg}, 0 0 0 3px ${XP.acid}55`,
-                }}>{receiver.username?.[0].toUpperCase() || 'X'}</div>
+                }}>{(receiver.display_name || receiver.username)?.[0].toUpperCase() || 'X'}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontWeight: 700, fontSize: 17 }}>@{receiver.username}</span>
+                    <span style={{ fontWeight: 700, fontSize: 17 }}>{receiver.display_name || `@${receiver.username}`}</span>
                     <svg width="14" height="14" viewBox="0 0 14 14" fill={XP.acid}>
                       <path d="M7 0l1.6 1.7 2.3-.3.5 2.3 2 1.1-1 2.2 1 2.2-2 1.1-.5 2.3-2.3-.3L7 14l-1.6-1.7-2.3.3-.5-2.3-2-1.1 1-2.2-1-2.2 2-1.1.5-2.3 2.3.3z"/>
                       <path d="M4.5 7l1.7 1.7L9.5 5.4" stroke={XP.bg} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>  
                     </svg>
                   </div>
                   <div style={{ marginTop: 4 }}>
-                    <XPTierChip tier="gold" percentile={3} compact />
+                    <XPTierChip tier={getTierByRank(receiver.rank ?? 999)} compact />
                   </div>
                 </div>
               </div>
@@ -174,11 +197,34 @@ export default function PublicSender({ initialReceiver }: { initialReceiver?: an
             </div>
           </div>
 
+          {/* FOMO strip */}
+          <div style={{ padding: '10px 18px 0', position: 'relative', zIndex: 2 }}>
+            <div style={{
+              padding: '10px 14px', background: `${XP.hot}0D`,
+              border: `1px solid ${XP.hot}33`, borderRadius: 14,
+              display: 'flex', alignItems: 'center', gap: 10,
+            }}>
+              <XPPulseDot size={5} color={XP.hot} />
+              <span style={{ fontFamily: XP.fMono, fontSize: 11, color: XP.inkDim, letterSpacing: '0.04em', flex: 1 }}>
+                {(receiver.recent_count ?? 0) >= 2
+                  ? `${receiver.recent_count} personas ya enviaron hoy`
+                  : (receiver.recent_count ?? 0) === 1
+                  ? '1 persona ya envió hoy · ¿y tú?'
+                  : (receiver.message_count ?? 0) > 0
+                  ? 'sé el primero en enviar hoy'
+                  : 'sé el primero en enviarle algo'}
+                {receiver.last_message_at && (receiver.recent_count ?? 0) > 0
+                  ? ` · hace ${relativeTime(receiver.last_message_at)}`
+                  : ''}
+              </span>
+            </div>
+          </div>
+
           {/* HOOK */}
           <div style={{ padding: '22px 22px 0', position: 'relative', zIndex: 2 }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>
               <span style={{ fontFamily: XP.fDisp, fontSize: 28, lineHeight: 1, color: XP.ink }}>
-                {receiver.username}
+                {receiver.display_name || receiver.username}
               </span>
               <span style={{ fontFamily: XP.fSerif, fontStyle: 'italic', fontSize: 26, color: XP.acid, lineHeight: 1 }}>
                 quiere saber
@@ -263,6 +309,19 @@ export default function PublicSender({ initialReceiver }: { initialReceiver?: an
             </button>
           </div>
 
+          {/* send error */}
+          {sendError && (
+            <div style={{ padding: '8px 18px 0', position: 'relative', zIndex: 2 }}>
+              <div style={{
+                padding: '10px 14px', background: `${XP.hot}0D`,
+                border: `1px solid ${XP.hot}55`, borderRadius: 12,
+                fontFamily: XP.fMono, fontSize: 11, color: XP.hot, textAlign: 'center',
+              }}>
+                ⚠ {sendError}
+              </div>
+            </div>
+          )}
+
           {/* live counter */}
           <div style={{
             padding: '16px 18px 28px', display: 'flex', flexDirection: 'column', alignItems: 'center',
@@ -295,8 +354,11 @@ function StatCell({ value, label, color = XP.ink }: { value: string, label: stri
   );
 }
 
-function SentState({ onReset }: { onReset: () => void }) {
+function SentState({ onReset, referralCode }: { onReset: () => void; referralCode?: string }) {
   const BOT_USERNAME = process.env.NEXT_PUBLIC_BOT_USERNAME || 'xposed_bot';
+  const joinUrl = referralCode
+    ? `https://t.me/${BOT_USERNAME}?start=${referralCode}`
+    : `https://t.me/${BOT_USERNAME}`;
   return (
     <div style={{
       padding: '40px 22px', display: 'flex', flexDirection: 'column',
@@ -338,8 +400,8 @@ function SentState({ onReset }: { onReset: () => void }) {
           crea tu propio link.<br/>
           mira qué dicen de ti.
         </div>
-        <button 
-          onClick={() => window.location.href = `https://t.me/${BOT_USERNAME}`}
+        <button
+          onClick={() => window.location.href = joinUrl}
           style={{
             width: '100%', height: 42, borderRadius: 12, border: 'none',
             background: XP.ink, color: XP.bg, fontFamily: XP.fBody,

@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Api } from "grammy";
 
-const PACKAGES: Record<string, { stars: number; xtr: number; label: string }> = {
-  "100":  { stars: 100,  xtr: 1,  label: "100 Tokens Xposed"  },
-  "500":  { stars: 500,  xtr: 5,  label: "500 Tokens Xposed"  },
-  "1000": { stars: 1000, xtr: 10, label: "1000 Tokens Xposed" },
+export const PACKAGES: Record<string, { tokens: number; xtr: number; label: string; type: 'tokens' | 'subscription' }> = {
+  "100":  { tokens: 100,  xtr: 10,  label: "100 Tokens Xposed",   type: 'tokens' },
+  "500":  { tokens: 500,  xtr: 50,  label: "500 Tokens Xposed",   type: 'tokens' },
+  "1000": { tokens: 1000, xtr: 100, label: "1000 Tokens Xposed",  type: 'tokens' },
+  "sub":  { tokens: 0,    xtr: 250, label: "Xposed Pro — 1 mes",  type: 'subscription' },
 };
 
 export async function POST(req: NextRequest) {
@@ -26,13 +27,20 @@ export async function POST(req: NextRequest) {
     }
 
     const api = new Api(botToken);
-    const payload = `stars_${telegram_id}_${pkg.stars}`;
+
+    const payload = pkg.type === 'subscription'
+      ? `sub_${telegram_id}`
+      : `stars_${telegram_id}_${pkg.tokens}`;
+
+    const description = pkg.type === 'subscription'
+      ? 'Pistas reveladas ilimitadas + cambio de nombre ilimitado por 30 días'
+      : `Recibe ${pkg.tokens} tokens para revelar pistas en Xposed`;
 
     const url = await api.createInvoiceLink(
       pkg.label,
-      `Recibe ${pkg.stars} tokens para revelar pistas en Xposed`,
+      description,
       payload,
-      "",    // provider_token: empty string for Telegram Stars (XTR)
+      "",
       "XTR",
       [{ label: pkg.label, amount: pkg.xtr }]
     );

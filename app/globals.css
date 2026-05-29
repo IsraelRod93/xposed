@@ -8,9 +8,19 @@
   --background-end-rgb: 11, 10, 8;
 }
 
+html,
 body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
   color: rgb(var(--foreground-rgb));
   background: rgb(var(--background-start-rgb));
+}
+
+#__next,
+main {
+  height: 100%;
 }
 
 @keyframes xp-pulse { 0%,100% { opacity:.55 } 50% { opacity:1 } }

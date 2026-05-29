@@ -11,18 +11,14 @@ const bot = new Bot(botToken || "dummy_token");
 bot.command("start", async (ctx) => {
   const telegramId = ctx.from?.id;
   const username = ctx.from?.username || "anonimo";
-
-  console.log(`[BOT] /start from user ${telegramId} (${username})`);
+  const refCode = (ctx.match as string)?.trim() || null; // referral share_link passed as /start REFCODE
 
   if (!telegramId) return;
   if (!sql) {
-    console.error("[BOT] SQL client is missing!");
     return ctx.reply("❌ Error: La variable DATABASE_URL no está configurada en Vercel.");
   }
 
   try {
-    // 1. Intentar crear las tablas si no existen (Auto-init)
-    console.log("[BOT] Ensuring tables exist...");
     try {
       await sql`
         CREATE TABLE IF NOT EXISTS users (
@@ -43,7 +39,13 @@ bot.command("start", async (ctx) => {
           content TEXT NOT NULL,
           sender_os TEXT,
           sender_country TEXT,
+          sender_city TEXT,
+          sender_platform TEXT,
+          sender_hour INTEGER,
+          sender_ip TEXT,
           is_clue_revealed BOOLEAN DEFAULT FALSE,
+          revealed_premium TEXT DEFAULT '',
+          hidden_by_user BOOLEAN DEFAULT FALSE,
           created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
         )
       `;
@@ -59,73 +61,110 @@ bot.command("start", async (ctx) => {
       `;
     } catch (dbInitErr: any) {
       console.error("[BOT] Table init failed:", dbInitErr);
-      // Ignoramos si fallan por permisos, pero si es error de usuario (auth), caerá en el catch principal
-    }
-
-    // 2. Verificar si el usuario ya existe
-    const users = await sql`
-      SELECT * FROM users WHERE telegram_id = ${telegramId}
-    `;
-
-    let user = users.length > 0 ? users[0] : null;
-
-    // 3. Si no existe, crearlo
-    if (!user) {
-      console.log(`[BOT] Creating new user for ${telegramId}...`);
-      const shareLink = `${username}_${Math.random().toString(36).substring(2, 7)}`;
-      
-      const newUser = await sql`
-        INSERT INTO users (telegram_id, username, share_link, stars)
-        VALUES (${telegramId}, ${username}, ${shareLink}, 100)
-        RETURNING *
-      `;
-      user = newUser[0];
     }
 
     const rawAppUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tu-app.vercel.app";
     const appUrl = rawAppUrl.endsWith("/") ? rawAppUrl.slice(0, -1) : rawAppUrl;
-    const personalLink = `${appUrl}/u/${user.share_link}`;
 
-    // Forzar la configuración del Menu Button para este usuario
-    try {
-      await ctx.setChatMenuButton({
-        menu_button: {
-          type: "web_app",
-          text: "Abrir Xposed",
-          web_app: { url: appUrl }
-        }
-      });
-    } catch (e) {
-      console.error("[BOT] Error setting menu button in /start:", e);
-    }
+    const users = await sql`SELECT * FROM users WHERE telegram_id = ${telegramId}`;
+    let user = users.length > 0 ? users[0] : null;
 
-    await ctx.reply(
-      `¡Bienvenido a Xposed, @${username}! 🤫\n\n` +
-      `Te hemos regalado 100 🪙 tokens para empezar.\n\n` +
-      `Tu enlace personal para recibir secretos es:\n` +
-      `👉 ${personalLink}\n\n` +
-      `Compártelo en tu bio de Instagram o TikTok.`,
-      {
-        reply_markup: {
-          inline_keyboard: [[{ 
-            text: "Ver mi Inbox 📩", 
-            web_app: { url: appUrl } 
-          }]]
+    if (!user) {
+      const shareLink = `${username}_${Math.random().toString(36).substring(2, 7)}`;
+
+      // Check for valid referral
+      let referrerId: number | null = null;
+      if (refCode) {
+        const referrers = await sql`SELECT telegram_id FROM users WHERE share_link = ${refCode}`;
+        if (referrers.length > 0 && Number(referrers[0].telegram_id) !== telegramId) {
+          referrerId = Number(referrers[0].telegram_id);
         }
       }
-    );
+
+      const initialStars = referrerId ? 150 : 100;
+
+      const newUser = await sql`
+        INSERT INTO users (telegram_id, username, share_link, stars, referred_by)
+        VALUES (${telegramId}, ${username}, ${shareLink}, ${initialStars}, ${referrerId})
+        RETURNING *
+      `;
+      user = newUser[0];
+
+      if (referrerId) {
+        // Grant 50 tokens to referrer and bump their count
+        await sql`
+          UPDATE users SET stars = stars + 50, referral_count = referral_count + 1
+          WHERE telegram_id = ${referrerId}
+        `;
+        // Record in transactions
+        try {
+          await sql`INSERT INTO transactions (user_id, type, amount) VALUES (${referrerId}, 'referral', 50)`;
+        } catch {}
+        // Notify referrer
+        fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: referrerId,
+            text: `🎁 ¡Tu invitación funcionó!\n@${username} se unió con tu link y ambos ganaron +50 🪙 tokens.`,
+            reply_markup: { inline_keyboard: [[{ text: "Ver mi Inbox 📩", web_app: { url: appUrl } }]] }
+          })
+        }).catch(() => {});
+      }
+    }
+
+    const personalLink = `${appUrl}/u/${user.share_link}`;
+    const referralLink = `https://t.me/${ctx.me.username}?start=${user.share_link}`;
+    const isNew = !users.length;
+
+    try {
+      await ctx.setChatMenuButton({
+        menu_button: { type: "web_app", text: "Abrir Xposed", web_app: { url: appUrl } }
+      });
+    } catch (e) {}
+
+    const welcomeMsg = isNew
+      ? `¡Bienvenido a Xposed, @${username}! 🤫\n\n` +
+        `Te hemos regalado ${refCode ? '150' : '100'} 🪙 tokens para empezar${refCode ? ' (50 extra por invitación 🎁)' : ''}.\n\n` +
+        `Tu enlace personal:\n👉 ${personalLink}\n\n` +
+        `Invita amigos y ambos ganan 50 🪙:\n🔗 ${referralLink}`
+      : `¡Hola de nuevo, @${username}! 👋\n\n` +
+        `Tu enlace personal:\n👉 ${personalLink}`;
+
+    await ctx.reply(welcomeMsg, {
+      reply_markup: { inline_keyboard: [[{ text: "Ver mi Inbox 📩", web_app: { url: appUrl } }]] }
+    });
   } catch (err: any) {
     console.error("[BOT] Error in /start handler:", err);
-    let msg = "Hubo un error al iniciar.";
-    if (err.message?.includes("user")) {
-      msg = "❌ Error de Base de Datos: El usuario de la base de datos no existe o la contraseña es incorrecta. Revisa tu DATABASE_URL en Neon.";
-    } else if (err.message?.includes("relation")) {
-      msg = "❌ Error de Base de Datos: Faltan las tablas. Intenta de nuevo, estoy intentando crearlas automáticamente.";
-    } else {
-      msg = `❌ Error: ${err.message}`;
-    }
-    await ctx.reply(msg);
+    await ctx.reply(`❌ Error: ${err.message}`);
   }
+});
+
+bot.callbackQuery(/^adm_del_(.+)$/, async (ctx) => {
+  const adminId = process.env.ADMIN_TELEGRAM_ID;
+  if (String(ctx.from.id) !== adminId) {
+    await ctx.answerCallbackQuery({ text: '⛔ No autorizado' });
+    return;
+  }
+  const messageId = ctx.match[1];
+  if (sql) {
+    try {
+      await sql`DELETE FROM messages WHERE id = ${messageId}::uuid`;
+      await sql`DELETE FROM reports WHERE message_id = ${messageId}::uuid`;
+    } catch {}
+  }
+  await ctx.answerCallbackQuery({ text: '✅ Eliminado' });
+  await ctx.editMessageText('🗑 Mensaje eliminado permanentemente.').catch(() => {});
+});
+
+bot.callbackQuery(/^adm_ign_(.+)$/, async (ctx) => {
+  const adminId = process.env.ADMIN_TELEGRAM_ID;
+  if (String(ctx.from.id) !== adminId) {
+    await ctx.answerCallbackQuery({ text: '⛔ No autorizado' });
+    return;
+  }
+  await ctx.answerCallbackQuery({ text: '✅ Reporte ignorado' });
+  await ctx.editMessageText('✅ Reporte ignorado — mensaje conservado.').catch(() => {});
 });
 
 bot.on("pre_checkout_query", async (ctx) => {
@@ -134,42 +173,65 @@ bot.on("pre_checkout_query", async (ctx) => {
 
 bot.on("message:successful_payment", async (ctx) => {
   const payment = ctx.message?.successful_payment;
-  if (!payment) return;
+  if (!payment || !sql) return;
 
   const payload = payment.invoice_payload;
-  // payload format: "stars_TELEGRAMID_AMOUNT"
-  const parts = payload.split("_");
-  if (parts.length !== 3 || parts[0] !== "stars") return;
-
-  const telegramId = parseInt(parts[1]);
-  const amount = parseInt(parts[2]);
-
-  if (!telegramId || !amount || !sql) return;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://tu-app.vercel.app";
 
   try {
-    await sql`
-      WITH updated_user AS (
-        UPDATE users
-        SET stars = stars + ${amount}
-        WHERE telegram_id = ${telegramId}
-        RETURNING telegram_id
-      )
-      INSERT INTO transactions (user_id, type, amount)
-      SELECT telegram_id, 'purchase', ${amount}
-      FROM updated_user
-    `;
+    if (payload.startsWith("sub_")) {
+      // Subscription payment
+      const telegramId = parseInt(payload.split("_")[1]);
+      if (!telegramId) return;
 
-    await ctx.reply(
-      `✅ ¡Recibiste ${amount} 🪙 tokens!\n\nYa puedes revelar pistas en tu inbox.`,
-      {
-        reply_markup: {
-          inline_keyboard: [[{
-            text: "Ver mi Inbox 📩",
-            web_app: { url: process.env.NEXT_PUBLIC_APP_URL || "https://tu-app.vercel.app" }
-          }]]
+      await sql`
+        UPDATE users
+        SET subscribed_until = NOW() + INTERVAL '30 days'
+        WHERE telegram_id = ${telegramId}
+      `;
+      await sql`
+        INSERT INTO transactions (user_id, type, amount)
+        VALUES (${telegramId}, 'subscription', -250)
+      `;
+
+      await ctx.reply(
+        `🌟 ¡Xposed Pro activado por 30 días!\n\n` +
+        `✅ Pistas reveladas ilimitadas\n` +
+        `✅ Cambio de nombre ilimitado\n\n` +
+        `Disfruta tu suscripción 🎉`,
+        {
+          reply_markup: {
+            inline_keyboard: [[{ text: "Abrir Xposed 🚀", web_app: { url: appUrl } }]]
+          }
         }
-      }
-    );
+      );
+    } else if (payload.startsWith("stars_")) {
+      // Token purchase: stars_TELEGRAMID_AMOUNT
+      const parts = payload.split("_");
+      if (parts.length !== 3) return;
+      const telegramId = parseInt(parts[1]);
+      const amount = parseInt(parts[2]);
+      if (!telegramId || !amount) return;
+
+      await sql`
+        WITH updated_user AS (
+          UPDATE users SET stars = stars + ${amount}
+          WHERE telegram_id = ${telegramId}
+          RETURNING telegram_id
+        )
+        INSERT INTO transactions (user_id, type, amount)
+        SELECT telegram_id, 'purchase', ${amount} FROM updated_user
+      `;
+
+      await ctx.reply(
+        `✅ ¡Recibiste ${amount} 🪙 tokens!\n\nYa puedes revelar pistas en tu inbox.`,
+        {
+          reply_markup: {
+            inline_keyboard: [[{ text: "Ver mi Inbox 📩", web_app: { url: appUrl } }]]
+          }
+        }
+      );
+    }
   } catch (err) {
     console.error("[BOT] Error processing payment:", err);
   }

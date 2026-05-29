@@ -1,13 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
-import { ensureTransactionsTable, ensureMissionsColumns } from "@/lib/migrations";
-import { DAILY_MISSIONS } from "@/lib/missions";
+import { getDailyMissions, ALL_MISSIONS } from "@/lib/missions";
 
 export async function POST(req: NextRequest) {
   if (!sql) return NextResponse.json({ error: "Database not configured" }, { status: 500 });
-
-  await ensureTransactionsTable();
-  await ensureMissionsColumns();
 
   try {
     const { telegram_id, mission_id } = await req.json();
@@ -15,7 +11,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    const mission = DAILY_MISSIONS.find(m => m.id === mission_id);
+    const mission = ALL_MISSIONS.find(m => m.id === mission_id);
     if (!mission) return NextResponse.json({ error: "Invalid mission" }, { status: 400 });
 
     // Reset daily missions if date changed
@@ -37,7 +33,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Mission already claimed" }, { status: 400 });
     }
 
-    // Verify progress requirement
+    // Verify progress
     let progress = 0;
     if (mission.type === 'messages_today') {
       const r = await sql`SELECT COUNT(*) FROM messages WHERE receiver_id = ${telegram_id} AND created_at::date = CURRENT_DATE`;
@@ -47,6 +43,14 @@ export async function POST(req: NextRequest) {
     } else if (mission.type === 'messages_total') {
       const r = await sql`SELECT COUNT(*) FROM messages WHERE receiver_id = ${telegram_id}`;
       progress = parseInt(r[0].count);
+    } else if (mission.type === 'referral_today') {
+      try {
+        const r = await sql`
+          SELECT COUNT(*) FROM transactions
+          WHERE user_id = ${telegram_id} AND type = 'referral' AND created_at::date = CURRENT_DATE
+        `;
+        progress = parseInt(r[0].count);
+      } catch {}
     }
 
     if (progress < mission.goal) {
@@ -55,13 +59,10 @@ export async function POST(req: NextRequest) {
 
     const newClaimed = [...claimed, mission_id].join(',');
 
-    // Award tokens + mark claimed atomically
     await sql`
       WITH updated AS (
         UPDATE users
-        SET
-          stars = stars + ${mission.reward},
-          missions_claimed_today = ${newClaimed}
+        SET stars = stars + ${mission.reward}, missions_claimed_today = ${newClaimed}
         WHERE telegram_id = ${telegram_id}
         RETURNING telegram_id
       )
@@ -69,9 +70,10 @@ export async function POST(req: NextRequest) {
       SELECT telegram_id, 'mission_reward', ${mission.reward} FROM updated
     `;
 
-    // Find next unclaimed mission
+    const today = new Date().toISOString().slice(0, 10);
+    const todayMissions = getDailyMissions(today);
     const allClaimed = [...claimed, mission_id];
-    const next = DAILY_MISSIONS.find(m => !allClaimed.includes(m.id)) ?? null;
+    const next = todayMissions.find(m => !allClaimed.includes(m.id)) ?? null;
 
     return NextResponse.json({ ok: true, reward: mission.reward, next });
   } catch (err) {

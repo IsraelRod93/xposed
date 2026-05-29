@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
-import { ensureDisplayNameColumn } from "@/lib/migrations";
 
 export async function GET(
   req: NextRequest,
@@ -11,8 +10,6 @@ export async function GET(
   }
 
   const { id: telegramId } = await params;
-
-  await ensureDisplayNameColumn();
 
   try {
     // 1. Get user data and update streak atomically on each inbox open
@@ -36,8 +33,9 @@ export async function GET(
 
     // 2. Get messages
     const messages = await sql`
-      SELECT * FROM messages 
-      WHERE receiver_id = ${telegramId} 
+      SELECT * FROM messages
+      WHERE receiver_id = ${telegramId}
+        AND (hidden_by_user IS NULL OR hidden_by_user = FALSE)
       ORDER BY created_at DESC
     `;
 
@@ -55,15 +53,13 @@ export async function GET(
       AND created_at::date = CURRENT_DATE
     `;
 
-    // 5. Rank among all users by weekly messages
+    // 5. Rank among all users by total messages
     const rankResult = await sql`
       SELECT COUNT(*) + 1 AS rank
       FROM users u
       WHERE (
-        SELECT COUNT(*) FROM messages m
-        WHERE m.receiver_id = u.telegram_id
-        AND m.created_at > NOW() - INTERVAL '7 days'
-      ) > ${weeklyCount[0].count}
+        SELECT COUNT(*) FROM messages m WHERE m.receiver_id = u.telegram_id
+      ) > ${messages.length}
     `;
 
     // 6. Total stars spent (from transactions — safe if table is empty)
