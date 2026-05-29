@@ -131,13 +131,35 @@ bot.command("start", async (ctx) => {
       : `¡Hola de nuevo, @${username}! 👋\n\n` +
         `Tu enlace personal:\n👉 ${personalLink}`;
 
+    const affiliateUrl = `https://t.me/affiliate?bot=${ctx.me.username}`;
+
     await ctx.reply(welcomeMsg, {
-      reply_markup: { inline_keyboard: [[{ text: "Ver mi Inbox 📩", web_app: { url: appUrl } }]] }
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: "Ver mi Inbox 📩", web_app: { url: appUrl } }],
+          [{ text: "💸 Ganar comisión como afiliado", url: affiliateUrl }],
+        ]
+      }
     });
   } catch (err: any) {
     console.error("[BOT] Error in /start handler:", err);
     await ctx.reply(`❌ Error: ${err.message}`);
   }
+});
+
+bot.command("affiliate", async (ctx) => {
+  const affiliateUrl = `https://t.me/affiliate?bot=${ctx.me.username}`;
+  await ctx.reply(
+    `💸 *Programa de Afiliados Xposed*\n\n` +
+    `Gana el *90% de comisión* durante 3 meses por cada pago que generen los usuarios que traigas.\n\n` +
+    `Toca el botón para unirte:`,
+    {
+      parse_mode: "Markdown",
+      reply_markup: {
+        inline_keyboard: [[{ text: "🚀 Unirme como afiliado", url: affiliateUrl }]]
+      }
+    }
+  );
 });
 
 bot.callbackQuery(/^adm_del_(.+)$/, async (ctx) => {
