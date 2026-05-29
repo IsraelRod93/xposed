@@ -21,7 +21,7 @@ export async function GET(
         u.share_link,
         COUNT(m.id)::int AS message_count,
         MAX(m.created_at) AS last_message_at,
-        COUNT(m.id) FILTER (WHERE m.created_at > NOW() - INTERVAL '24 hours')::int AS recent_count
+        COUNT(DISTINCT m.sender_ip) FILTER (WHERE m.created_at > NOW() - INTERVAL '24 hours')::int AS recent_count
       FROM users u
       LEFT JOIN messages m ON u.telegram_id = m.receiver_id
       WHERE u.share_link = ${shareLink}

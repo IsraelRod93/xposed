@@ -61,7 +61,7 @@ async function notifyReceiver(receiverId: bigint | number) {
   });
 }
 
-const RATE_LIMIT = 5;
+const RATE_LIMIT = 50;
 
 function getClientIP(req: NextRequest): string {
   return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
@@ -92,11 +92,11 @@ export async function POST(req: NextRequest) {
     const recentCount = await sql`
       SELECT COUNT(*) FROM messages
       WHERE sender_ip = ${ip}
-        AND created_at > NOW() - INTERVAL '1 hour'
+        AND created_at > NOW() - INTERVAL '1 day'
     `;
     if (parseInt(recentCount[0].count) >= RATE_LIMIT) {
       return NextResponse.json(
-        { error: "Demasiados mensajes. Vuelve en 1 hora." },
+        { error: "Demasiados mensajes. Vuelve mañana." },
         { status: 429 }
       );
     }
