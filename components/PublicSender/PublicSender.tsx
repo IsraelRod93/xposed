@@ -324,7 +324,8 @@ export default function PublicSender({ initialReceiver }: { initialReceiver?: an
 
           {/* live counter */}
           <div style={{
-            padding: '16px 18px 28px', display: 'flex', flexDirection: 'column', alignItems: 'center',
+            padding: '16px 18px calc(28px + env(safe-area-inset-bottom, 0px))',
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
             gap: 6, position: 'relative', zIndex: 2,
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
