@@ -136,6 +136,7 @@ bot.command("start", async (ctx) => {
       reply_markup: {
         inline_keyboard: [
           [{ text: "Ver mi Inbox 📩", web_app: { url: appUrl } }],
+          [{ text: "💸 Ganar comisión como afiliado", url: `https://t.me/affiliate?bot=${ctx.me.username}` }],
         ]
       }
     });
