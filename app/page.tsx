@@ -326,18 +326,24 @@ export default function InboxPage() {
         {tab === 'rank' && <RankingMini ranking={ranking} currentUserId={user?.id} />}
         {tab === 'discover' && <DiscoverFeed discover={discover} appUrl={process.env.NEXT_PUBLIC_APP_URL || ''} telegramId={user?.id} stars={userData?.stars ?? 0} onBoosted={() => user?.id && fetchInbox(user.id)} />}
         {tab === 'link' && user?.id && (
-          <div style={{ marginBottom: 14 }}>
-            <XPMonoLabel size={10}>GANAR GRATIS</XPMonoLabel>
-            <div style={{ marginTop: 10 }}>
-              <Suspense fallback={null}>
-                <WatchAdButton
-                  telegramId={user.id}
-                  adsToday={userData?.daily_ads_watched ?? 0}
-                  onRewarded={() => user?.id && fetchInbox(user.id)}
-                />
-              </Suspense>
+          <>
+            <BuyTokensCard
+              telegramId={user.id}
+              onPurchased={() => user?.id && fetchInbox(user.id)}
+            />
+            <div style={{ marginBottom: 14 }}>
+              <XPMonoLabel size={10}>GANAR GRATIS</XPMonoLabel>
+              <div style={{ marginTop: 10 }}>
+                <Suspense fallback={null}>
+                  <WatchAdButton
+                    telegramId={user.id}
+                    adsToday={userData?.daily_ads_watched ?? 0}
+                    onRewarded={() => user?.id && fetchInbox(user.id)}
+                  />
+                </Suspense>
+              </div>
             </div>
-          </div>
+          </>
         )}
         {tab === 'link'  && (
           <LinkPanel
@@ -1146,6 +1152,72 @@ function LinkPanel({ shareLink, onCopy, copied, telegramId, linkChanges, referra
         </XPMonoLabel>
       </div>
 
+    </div>
+  );
+}
+
+// ─── Buy Tokens Card ──────────────────────────────────────────────────────────
+
+const PACKAGES = [
+  { id: '100',  label: '100 🪙',  xtr: 10,  desc: 'Starter' },
+  { id: '500',  label: '500 🪙',  xtr: 50,  desc: 'Popular' },
+  { id: '1000', label: '1000 🪙', xtr: 100, desc: 'Pro' },
+  { id: 'sub',  label: 'Xposed Pro', xtr: 250, desc: '30 días · pistas ilimitadas' },
+];
+
+function BuyTokensCard({ telegramId, onPurchased }: { telegramId: number; onPurchased: () => void }) {
+  const [loading, setLoading] = useState<string | null>(null);
+
+  const buy = async (packageId: string) => {
+    if (loading) return;
+    setLoading(packageId);
+    try {
+      const res = await fetch('/api/stars/invoice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telegram_id: telegramId, package_id: packageId }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.url) return;
+
+      const tg = (window as any).Telegram?.WebApp;
+      if (tg?.openInvoice) {
+        tg.openInvoice(data.url, (status: string) => {
+          if (status === 'paid') onPurchased();
+        });
+      } else {
+        window.open(data.url, '_blank');
+      }
+    } catch {}
+    finally { setLoading(null); }
+  };
+
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <XPMonoLabel size={10}>COMPRAR TOKENS</XPMonoLabel>
+      <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+        {PACKAGES.map(pkg => (
+          <button
+            key={pkg.id}
+            onClick={() => buy(pkg.id)}
+            disabled={!!loading}
+            style={{
+              padding: '12px 10px', borderRadius: 14, border: `1px solid ${XP.line}`,
+              background: pkg.id === 'sub' ? `${XP.gold}14` : XP.surface,
+              cursor: 'pointer', opacity: loading === pkg.id ? 0.6 : 1,
+              transition: 'opacity .15s', textAlign: 'center',
+              gridColumn: pkg.id === 'sub' ? 'span 2' : undefined,
+            }}
+          >
+            <div style={{ fontFamily: XP.fDisp, fontSize: 18, color: pkg.id === 'sub' ? XP.gold : XP.acid, lineHeight: 1 }}>
+              {loading === pkg.id ? '...' : pkg.label}
+            </div>
+            <div style={{ marginTop: 4 }}>
+              <XPMonoLabel size={8} color={XP.inkMuted}>{pkg.desc} · {pkg.xtr} ⭐</XPMonoLabel>
+            </div>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
