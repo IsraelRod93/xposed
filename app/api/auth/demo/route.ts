@@ -10,13 +10,15 @@ export async function POST(req: NextRequest) {
   if (!sql) return NextResponse.json({ error: 'DB not configured' }, { status: 500 });
 
   try {
-    const existing = await sql`SELECT * FROM users WHERE share_link = 'demo_user' LIMIT 1`;
+    const { share_link = 'demo_user' } = await req.json().catch(() => ({}));
+
+    const existing = await sql`SELECT * FROM users WHERE share_link = ${share_link} LIMIT 1`;
 
     let user = existing[0];
     if (!user) {
       const [created] = await sql`
         INSERT INTO users (email, display_name, share_link, stars)
-        VALUES ('demo@xposed.app', 'Demo', 'demo_user', 500)
+        VALUES ('demo@xposed.app', ${share_link}, ${share_link}, 500)
         RETURNING *
       `;
       user = created;
