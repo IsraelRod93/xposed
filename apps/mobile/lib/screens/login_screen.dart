@@ -118,31 +118,16 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Future<void> _signInGoogle() async {
-    setState(() { _loading = true; _error = null; });
-    final user = await AuthService.signInWithGoogle();
-    if (!mounted) return;
-    setState(() => _loading = false);
-    if (user != null) context.go('/inbox');
-    else setState(() => _error = 'Error al iniciar con Google.');
-  }
-
-  Future<void> _signInApple() async {
-    setState(() { _loading = true; _error = null; });
-    final user = await AuthService.signInWithApple();
-    if (!mounted) return;
-    setState(() => _loading = false);
-    if (user != null) context.go('/inbox');
-    else setState(() => _error = 'Error al iniciar con Apple.');
-  }
-
-  Future<void> _signInFacebook() async {
-    setState(() { _loading = true; _error = null; });
-    final user = await AuthService.signInWithFacebook();
-    if (!mounted) return;
-    setState(() => _loading = false);
-    if (user != null) context.go('/inbox');
-    else setState(() => _error = 'Error al iniciar con Facebook.');
+  void _comingSoon(String provider) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$provider disponible próximamente',
+            style: fBody(size: 13, color: const Color(kInk))),
+        backgroundColor: const Color(kSurface2),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   @override
@@ -252,19 +237,19 @@ class _LoginScreenState extends State<LoginScreen> {
               Row(children: [
                 _socialBtnCustom(
                   label: 'Google',
-                  onTap: _signInGoogle,
+                  onTap: () => _comingSoon('Google'),
                   child: SvgPicture.string(_googleSvg, width: 22, height: 22),
                 ),
                 const SizedBox(width: 10),
                 _socialBtnCustom(
                   label: 'Facebook',
-                  onTap: _signInFacebook,
+                  onTap: () => _comingSoon('Facebook'),
                   child: SvgPicture.string(_facebookSvg, width: 22, height: 22),
                 ),
                 const SizedBox(width: 10),
                 _socialBtnCustom(
                   label: 'Apple',
-                  onTap: _signInApple,
+                  onTap: () => _comingSoon('Apple'),
                   child: SvgPicture.string(_appleSvg, width: 22, height: 22),
                 ),
               ]),
@@ -314,32 +299,6 @@ class _LoginScreenState extends State<LoginScreen> {
             border: InputBorder.none,
             contentPadding: const EdgeInsets.symmetric(vertical: 16),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _socialBtn({
-    required String label,
-    required IconData icon,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: _loading ? null : onTap,
-        child: Container(
-          height: 52,
-          decoration: BoxDecoration(
-            color: const Color(kSurface),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(kLine)),
-          ),
-          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Icon(icon, color: color, size: 24),
-            const SizedBox(height: 3),
-            Text(label, style: fMono(size: 9, color: const Color(kInkMuted))),
-          ]),
         ),
       ),
     );
