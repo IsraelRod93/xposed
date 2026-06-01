@@ -3,8 +3,10 @@ import Stripe from 'stripe';
 import { sql } from '@/lib/db';
 import { getAuthUserId } from '@/lib/auth';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-const PRICE_ID = process.env.STRIPE_PRICE_ID!; // $10/mes en Stripe dashboard
+function getStripe() {
+  if (!process.env.STRIPE_SECRET_KEY) throw new Error('STRIPE_SECRET_KEY not set');
+  return new Stripe(process.env.STRIPE_SECRET_KEY);
+} // $10/mes en Stripe dashboard
 
 export async function POST(req: NextRequest) {
   if (!sql) return NextResponse.json({ error: 'DB not configured' }, { status: 500 });
@@ -13,6 +15,9 @@ export async function POST(req: NextRequest) {
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
+    const stripe = getStripe();
+    const PRICE_ID = process.env.STRIPE_PRICE_ID!;
+
     const users = await sql`SELECT email, stripe_customer_id FROM users WHERE id = ${userId}`;
     if (users.length === 0) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
@@ -53,6 +58,7 @@ export async function DELETE(req: NextRequest) {
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
+    const stripe = getStripe();
     const users = await sql`SELECT stripe_subscription_id FROM users WHERE id = ${userId}`;
     if (!users[0]?.stripe_subscription_id) {
       return NextResponse.json({ error: 'No active subscription' }, { status: 404 });
