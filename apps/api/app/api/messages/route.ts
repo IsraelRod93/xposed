@@ -20,14 +20,6 @@ function detectCountry(req: NextRequest, fallback?: string): string {
   return fallback || 'Desconocido';
 }
 
-function detectCity(req: NextRequest): string {
-  const city = req.headers.get('x-vercel-ip-city');
-  if (city && city !== 'XX') {
-    try { return decodeURIComponent(city); } catch { return city; }
-  }
-  return 'Desconocida';
-}
-
 function detectPlatform(req: NextRequest): string {
   const referer = req.headers.get('referer') || '';
   if (referer.includes('instagram.com')) return 'Instagram';
@@ -65,6 +57,16 @@ export async function POST(req: NextRequest) {
 
     const ip = getClientIP(req);
 
+    // Reputación de IP: bloquea remitentes con varios mensajes reportados.
+    const [abuseRow] = await sql`
+      SELECT COUNT(*) AS reported FROM reports r
+      JOIN messages m ON m.id = r.message_id
+      WHERE m.sender_ip = ${ip}
+    `;
+    if (parseInt(abuseRow.reported) >= 3) {
+      return NextResponse.json({ error: 'No puedes enviar mensajes en este momento.' }, { status: 403 });
+    }
+
     const [recentCount] = await sql`
       SELECT COUNT(*) FROM messages
       WHERE sender_ip = ${ip} AND created_at > NOW() - INTERVAL '1 day'
@@ -74,7 +76,6 @@ export async function POST(req: NextRequest) {
     }
 
     const sender_country = detectCountry(req, clientCountry);
-    const sender_city = detectCity(req);
     const sender_platform = detectPlatform(req);
 
     const users = await sql`
@@ -86,8 +87,8 @@ export async function POST(req: NextRequest) {
     }
 
     await sql`
-      INSERT INTO messages (receiver_id, content, sender_os, sender_country, sender_city, sender_platform, sender_hour, sender_ip, is_clue_revealed)
-      VALUES (${users[0].id}, ${content}, ${sender_os}, ${sender_country}, ${sender_city}, ${sender_platform}, EXTRACT(HOUR FROM NOW())::INTEGER, ${ip}, false)
+      INSERT INTO messages (receiver_id, content, sender_os, sender_country, sender_platform, sender_hour, sender_ip, is_clue_revealed)
+      VALUES (${users[0].id}, ${content}, ${sender_os}, ${sender_country}, ${sender_platform}, EXTRACT(HOUR FROM NOW())::INTEGER, ${ip}, false)
     `;
 
     return NextResponse.json({ ok: true });

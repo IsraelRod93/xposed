@@ -93,7 +93,6 @@ export default function PublicSender({ initialReceiver }: { initialReceiver?: an
           share_link: link,
           content,
           sender_os: os,
-          sender_country: "España", // Simplified
         }),
       });
 
@@ -295,8 +294,19 @@ export default function PublicSender({ initialReceiver }: { initialReceiver?: an
               </span>
             </div>
             <XPMonoLabel size={8.5} color={XP.inkFaint}>
-              POWERED BY XPOSED · NUNCA SE REVELA TU IDENTIDAD
+              TU IDENTIDAD NUNCA SE REVELA · SE REGISTRAN DATOS APROXIMADOS (PAÍS, DISPOSITIVO, HORA) PARA SEGURIDAD
             </XPMonoLabel>
+            <a
+              href="/privacy"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                fontFamily: XP.fMono, fontSize: 8.5, color: XP.inkMuted,
+                textDecoration: 'underline', marginTop: 2,
+              }}
+            >
+              Privacidad y términos
+            </a>
           </div>
 
           {/* spacer so content isn't hidden behind fixed send bar */}

@@ -2,6 +2,10 @@
 // Cambia este valor al dominio real cuando crees el proyecto en Vercel.
 const kApiUrl = 'https://xposed-api.vercel.app';
 
+// Dominio del sitio web público (apps/web): landing, /privacy y /terms.
+// Cambia este valor al dominio real del proyecto Vercel del web.
+const kWebUrl = 'https://xposed-web.vercel.app';
+
 // Colores — mismo sistema XP que la web
 const kBg        = 0xFF0A0A0A;
 const kSurface   = 0xFF141414;

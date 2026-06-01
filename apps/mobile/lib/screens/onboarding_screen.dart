@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../config.dart';
 import '../fonts.dart';
 
@@ -41,6 +43,90 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   void dispose() {
     _timer?.cancel();
     super.dispose();
+  }
+
+  Future<void> _start() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool('age_ok') == true) {
+      if (mounted) context.go('/login');
+      return;
+    }
+    if (!mounted) return;
+    final ok = await _showAgeGate();
+    if (ok == true) {
+      await prefs.setBool('age_ok', true);
+      if (mounted) context.go('/login');
+    }
+  }
+
+  Future<bool?> _showAgeGate() {
+    return showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: const Color(kSurface),
+      isDismissible: false,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 28, 24, 32),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text('+18', style: fDisp(size: 40, color: const Color(kAcid))),
+          const SizedBox(height: 8),
+          Text('Contenido para mayores de 18',
+              textAlign: TextAlign.center,
+              style: fDisp(size: 22, color: const Color(kInk))),
+          const SizedBox(height: 10),
+          Text(
+            'Xposed contiene mensajes anónimos de otras personas. '
+            'Debes ser mayor de 18 años para continuar.',
+            textAlign: TextAlign.center,
+            style: fBody(size: 13, color: const Color(kInkDim)),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity, height: 52,
+            child: ElevatedButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(kAcid),
+                foregroundColor: const Color(kBg),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                elevation: 0,
+              ),
+              child: Text('Soy mayor de 18 años',
+                  style: fBody(size: 15, weight: FontWeight.w700, color: const Color(kBg))),
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text('Salir', style: fBody(size: 13, color: const Color(kInkMuted))),
+          ),
+          const SizedBox(height: 4),
+          Wrap(
+            alignment: WrapAlignment.center,
+            children: [
+              Text('Al continuar aceptas los ',
+                  style: fMono(size: 9, color: const Color(kInkFaint))),
+              GestureDetector(
+                onTap: () => launchUrl(Uri.parse('$kWebUrl/terms'),
+                    mode: LaunchMode.externalApplication),
+                child: Text('Términos',
+                    style: fMono(size: 9, color: const Color(kInkMuted))),
+              ),
+              Text(' y la ', style: fMono(size: 9, color: const Color(kInkFaint))),
+              GestureDetector(
+                onTap: () => launchUrl(Uri.parse('$kWebUrl/privacy'),
+                    mode: LaunchMode.externalApplication),
+                child: Text('Privacidad',
+                    style: fMono(size: 9, color: const Color(kInkMuted))),
+              ),
+              Text('.', style: fMono(size: 9, color: const Color(kInkFaint))),
+            ],
+          ),
+        ]),
+      ),
+    );
   }
 
   @override
@@ -152,7 +238,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               child: SizedBox(
                 width: double.infinity, height: 60,
                 child: ElevatedButton(
-                  onPressed: () => context.go('/login'),
+                  onPressed: _start,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(kAcid),
                     foregroundColor: const Color(kBg),

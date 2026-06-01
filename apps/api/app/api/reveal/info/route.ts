@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { getAuthUserId } from '@/lib/auth';
 
-const ALL_CLUES = ['country', 'os', 'hour', 'city', 'platform'] as const;
+const ALL_CLUES = ['country', 'os', 'hour', 'platform'] as const;
 type ClueType = typeof ALL_CLUES[number];
 
 function formatHour(h: number | null): string {
@@ -18,7 +18,6 @@ function getValue(type: ClueType, msg: any): string {
     case 'country':  return msg.sender_country || 'Desconocido';
     case 'os':       return msg.sender_os || 'Desconocido';
     case 'hour':     return formatHour(msg.sender_hour);
-    case 'city':     return msg.sender_city || 'Desconocida';
     case 'platform': return msg.sender_platform || 'Directo';
   }
 }

@@ -1,5 +1,6 @@
 import { Metadata, ResolvingMetadata } from 'next';
 import PublicSender from '@/components/PublicSender/PublicSender';
+import AgeGate from './AgeGate';
 
 type Props = {
   params: Promise<{ link: string }>;
@@ -42,5 +43,9 @@ export default async function Page({ params }: Props) {
   const { link } = await params;
   const receiver = await getReceiver(link);
 
-  return <PublicSender initialReceiver={receiver} />;
+  return (
+    <AgeGate>
+      <PublicSender initialReceiver={receiver} />
+    </AgeGate>
+  );
 }

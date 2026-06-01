@@ -88,6 +88,16 @@ export default function Home() {
           Descargar en Google Play
         </a>
       </div>
+
+      <footer style={{ marginTop: 48, fontSize: 13, color: "#555555" }}>
+        <a href="/privacy" style={{ color: "#888888", textDecoration: "none" }}>
+          Privacidad
+        </a>
+        <span style={{ margin: "0 10px" }}>·</span>
+        <a href="/terms" style={{ color: "#888888", textDecoration: "none" }}>
+          Términos
+        </a>
+      </footer>
     </main>
   );
 }
