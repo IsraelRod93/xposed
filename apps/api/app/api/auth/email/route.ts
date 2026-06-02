@@ -1,20 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { signJWT } from '@/lib/auth';
-import { createHash } from 'crypto';
+import { sanitizeDisplayName } from '@/lib/validation';
 import bcrypt from 'bcryptjs';
 
 const BCRYPT_ROUNDS = 12;
-
-// Hash legacy (SHA-256 con pepper). Solo se usa para validar cuentas creadas
-// antes de migrar a bcrypt; al iniciar sesión esas cuentas se re-hashean a bcrypt.
-function legacyHash(password: string): string {
-  return createHash('sha256').update(password + process.env.JWT_SECRET).digest('hex');
-}
-
-function isBcryptHash(hash: string): boolean {
-  return typeof hash === 'string' && hash.startsWith('$2');
-}
 
 function generateShareLink(email: string): string {
   const base = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20);
@@ -48,11 +38,9 @@ export async function POST(req: NextRequest) {
 
       const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
       const shareLink = generateShareLink(email);
-      const displayName = display_name || email.split('@')[0];
+      const displayName = sanitizeDisplayName(display_name, email.split('@')[0]);
 
-      // Usuario + credenciales en UNA sola sentencia (CTE) => atómica.
-      // Si el INSERT de credenciales falla, también se revierte el del usuario
-      // (Postgres trata cada sentencia como su propia transacción) => sin huérfanos.
+      // Usuario + credenciales en UNA sola sentencia (CTE) => atómica, sin huérfanos.
       const rows = await sql`
         WITH new_user AS (
           INSERT INTO users (email, display_name, share_link, stars)
@@ -70,10 +58,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ token, user });
 
     } else {
-      // login — una sola consulta (JOIN) trae el usuario y el hash guardado.
-      // La comparación va en código porque bcrypt usa salt aleatorio.
+      // login — una sola consulta (JOIN) trae el usuario y el hash bcrypt guardado.
       const rows = await sql`
-        SELECT u.*, ap.id AS provider_row_id, ap.provider_id AS password_hash
+        SELECT u.*, ap.provider_id AS password_hash
         FROM users u
         JOIN auth_providers ap ON ap.user_id = u.id
         WHERE u.email = ${email} AND ap.provider = 'email'
@@ -84,32 +71,12 @@ export async function POST(req: NextRequest) {
       }
 
       const row = rows[0];
-      const storedHash: string = row.password_hash;
-
-      let ok = false;
-      let needsUpgrade = false;
-      if (isBcryptHash(storedHash)) {
-        ok = await bcrypt.compare(password, storedHash);
-      } else {
-        // Cuenta legacy (SHA-256): valida y marca para re-hashear a bcrypt.
-        ok = storedHash === legacyHash(password);
-        needsUpgrade = ok;
-      }
-
+      const ok = await bcrypt.compare(password, row.password_hash || '');
       if (!ok) {
         return NextResponse.json({ error: 'Email o contraseña incorrectos' }, { status: 401 });
       }
 
-      if (needsUpgrade) {
-        const newHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
-        await sql`UPDATE auth_providers SET provider_id = ${newHash} WHERE id = ${row.provider_row_id}`
-          .catch(() => {});
-      }
-
-      // No exponer campos internos del join en la respuesta del usuario.
-      delete row.provider_row_id;
-      delete row.password_hash;
-
+      delete row.password_hash; // no exponer el hash en la respuesta
       const token = signJWT(row.id);
       return NextResponse.json({ token, user: row });
     }

@@ -3,6 +3,7 @@ import { OAuth2Client } from 'google-auth-library';
 import appleSignin from 'apple-signin-auth';
 import { sql } from '@/lib/db';
 import { signJWT } from '@/lib/auth';
+import { sanitizeDisplayName } from '@/lib/validation';
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -69,7 +70,7 @@ export async function POST(req: NextRequest) {
     }
 
     const initialStars = referrerId ? 150 : 100;
-    const name = display_name ?? providerData.name ?? shareLink;
+    const name = sanitizeDisplayName(display_name ?? providerData.name, shareLink);
 
     // Usuario + credenciales en UNA sola sentencia (CTE) => atómica, sin huérfanos.
     const [newUser] = await sql`

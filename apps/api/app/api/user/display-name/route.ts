@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { getAuthUserId } from '@/lib/auth';
+import { sanitizeDisplayName } from '@/lib/validation';
 
 export async function POST(req: NextRequest) {
   if (!sql) return NextResponse.json({ error: 'DB not configured' }, { status: 500 });
@@ -10,7 +11,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const { display_name } = await req.json();
-    const name = (display_name || '').trim().slice(0, 32);
+    const name = sanitizeDisplayName(display_name);
     if (!name) return NextResponse.json({ error: 'Nombre inválido' }, { status: 400 });
 
     const taken = await sql`
