@@ -70,15 +70,15 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Email o contraseña incorrectos' }, { status: 401 });
       }
 
-      const row = rows[0];
-      const ok = await bcrypt.compare(password, row.password_hash || '');
+      // Separa el hash del resto sin mutar el objeto original.
+      const { password_hash, ...user } = rows[0];
+      const ok = await bcrypt.compare(password, password_hash || '');
       if (!ok) {
         return NextResponse.json({ error: 'Email o contraseña incorrectos' }, { status: 401 });
       }
 
-      delete row.password_hash; // no exponer el hash en la respuesta
-      const token = signJWT(row.id);
-      return NextResponse.json({ token, user: row });
+      const token = signJWT(user.id);
+      return NextResponse.json({ token, user });
     }
   } catch (err) {
     console.error('[auth/email]', err);
