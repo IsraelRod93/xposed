@@ -2,9 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { signJWT } from '@/lib/auth';
 import { createHash } from 'crypto';
+import bcrypt from 'bcryptjs';
 
-function hashPassword(password: string): string {
+const BCRYPT_ROUNDS = 12;
+
+// Hash legacy (SHA-256 con pepper). Solo se usa para validar cuentas creadas
+// antes de migrar a bcrypt; al iniciar sesión esas cuentas se re-hashean a bcrypt.
+function legacyHash(password: string): string {
   return createHash('sha256').update(password + process.env.JWT_SECRET).digest('hex');
+}
+
+function isBcryptHash(hash: string): boolean {
+  return typeof hash === 'string' && hash.startsWith('$2');
 }
 
 function generateShareLink(email: string): string {
@@ -31,14 +40,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'La contraseña debe tener al menos 6 caracteres' }, { status: 400 });
     }
 
-    const hashed = hashPassword(password);
-
     if (action === 'register') {
       const existing = await sql`SELECT id FROM users WHERE email = ${email} LIMIT 1`;
       if (existing.length > 0) {
         return NextResponse.json({ error: 'Este email ya está registrado' }, { status: 409 });
       }
 
+      const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
       const shareLink = generateShareLink(email);
       const [user] = await sql`
         INSERT INTO users (email, display_name, share_link, stars)
@@ -47,27 +55,55 @@ export async function POST(req: NextRequest) {
       `;
       await sql`
         INSERT INTO auth_providers (user_id, provider, provider_id)
-        VALUES (${user.id}, 'email', ${hashed})
+        VALUES (${user.id}, 'email', ${passwordHash})
       `;
 
       const token = signJWT(user.id);
       return NextResponse.json({ token, user });
 
     } else {
-      // login
-      const providers = await sql`
-        SELECT ap.user_id FROM auth_providers ap
-        JOIN users u ON u.id = ap.user_id
-        WHERE u.email = ${email} AND ap.provider = 'email' AND ap.provider_id = ${hashed}
+      // login — una sola consulta (JOIN) trae el usuario y el hash guardado.
+      // La comparación va en código porque bcrypt usa salt aleatorio.
+      const rows = await sql`
+        SELECT u.*, ap.id AS provider_row_id, ap.provider_id AS password_hash
+        FROM users u
+        JOIN auth_providers ap ON ap.user_id = u.id
+        WHERE u.email = ${email} AND ap.provider = 'email'
         LIMIT 1
       `;
-      if (providers.length === 0) {
+      if (rows.length === 0) {
         return NextResponse.json({ error: 'Email o contraseña incorrectos' }, { status: 401 });
       }
 
-      const users = await sql`SELECT * FROM users WHERE id = ${providers[0].user_id}`;
-      const token = signJWT(users[0].id);
-      return NextResponse.json({ token, user: users[0] });
+      const row = rows[0];
+      const storedHash: string = row.password_hash;
+
+      let ok = false;
+      let needsUpgrade = false;
+      if (isBcryptHash(storedHash)) {
+        ok = await bcrypt.compare(password, storedHash);
+      } else {
+        // Cuenta legacy (SHA-256): valida y marca para re-hashear a bcrypt.
+        ok = storedHash === legacyHash(password);
+        needsUpgrade = ok;
+      }
+
+      if (!ok) {
+        return NextResponse.json({ error: 'Email o contraseña incorrectos' }, { status: 401 });
+      }
+
+      if (needsUpgrade) {
+        const newHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+        await sql`UPDATE auth_providers SET provider_id = ${newHash} WHERE id = ${row.provider_row_id}`
+          .catch(() => {});
+      }
+
+      // No exponer campos internos del join en la respuesta del usuario.
+      delete row.provider_row_id;
+      delete row.password_hash;
+
+      const token = signJWT(row.id);
+      return NextResponse.json({ token, user: row });
     }
   } catch (err) {
     console.error('[auth/email]', err);
