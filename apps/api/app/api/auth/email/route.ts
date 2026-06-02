@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { signJWT } from '@/lib/auth';
 import { sanitizeDisplayName } from '@/lib/validation';
+import { getClientIp, rateLimitOk } from '@/lib/ratelimit';
+import { User, UserWithPasswordHash } from '@/lib/types';
 import bcrypt from 'bcryptjs';
 
 const BCRYPT_ROUNDS = 12;
@@ -15,6 +17,12 @@ export async function POST(req: NextRequest) {
   if (!sql) return NextResponse.json({ error: 'DB not configured' }, { status: 500 });
 
   try {
+    // Rate limit por IP (anti fuerza bruta): 5 intentos / 60s.
+    const ip = getClientIp(req);
+    if (!(await rateLimitOk(`auth_email:${ip}`, 5, 60))) {
+      return NextResponse.json({ error: 'Demasiados intentos. Espera un minuto.' }, { status: 429 });
+    }
+
     const { action, email, password, display_name } = await req.json();
 
     if (!email || !password) {
@@ -51,7 +59,7 @@ export async function POST(req: NextRequest) {
           SELECT id, 'email', ${passwordHash} FROM new_user
         )
         SELECT * FROM new_user
-      `;
+      ` as User[];
 
       const user = rows[0];
       const token = signJWT(user.id);
@@ -65,7 +73,7 @@ export async function POST(req: NextRequest) {
         JOIN auth_providers ap ON ap.user_id = u.id
         WHERE u.email = ${email} AND ap.provider = 'email'
         LIMIT 1
-      `;
+      ` as UserWithPasswordHash[];
       if (rows.length === 0) {
         return NextResponse.json({ error: 'Email o contraseña incorrectos' }, { status: 401 });
       }
