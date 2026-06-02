@@ -71,15 +71,17 @@ export async function POST(req: NextRequest) {
     const initialStars = referrerId ? 150 : 100;
     const name = display_name ?? providerData.name ?? shareLink;
 
+    // Usuario + credenciales en UNA sola sentencia (CTE) => atómica, sin huérfanos.
     const [newUser] = await sql`
-      INSERT INTO users (email, display_name, share_link, stars, referred_by)
-      VALUES (${providerData.email}, ${name}, ${shareLink}, ${initialStars}, ${referrerId})
-      RETURNING *
-    `;
-
-    await sql`
-      INSERT INTO auth_providers (user_id, provider, provider_id)
-      VALUES (${newUser.id}, ${provider}, ${providerData.providerId})
+      WITH new_user AS (
+        INSERT INTO users (email, display_name, share_link, stars, referred_by)
+        VALUES (${providerData.email}, ${name}, ${shareLink}, ${initialStars}, ${referrerId})
+        RETURNING *
+      ), new_provider AS (
+        INSERT INTO auth_providers (user_id, provider, provider_id)
+        SELECT id, ${provider}, ${providerData.providerId} FROM new_user
+      )
+      SELECT * FROM new_user
     `;
 
     if (referrerId) {

@@ -48,16 +48,24 @@ export async function POST(req: NextRequest) {
 
       const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
       const shareLink = generateShareLink(email);
-      const [user] = await sql`
-        INSERT INTO users (email, display_name, share_link, stars)
-        VALUES (${email}, ${display_name || email.split('@')[0]}, ${shareLink}, 100)
-        RETURNING *
-      `;
-      await sql`
-        INSERT INTO auth_providers (user_id, provider, provider_id)
-        VALUES (${user.id}, 'email', ${passwordHash})
+      const displayName = display_name || email.split('@')[0];
+
+      // Usuario + credenciales en UNA sola sentencia (CTE) => atómica.
+      // Si el INSERT de credenciales falla, también se revierte el del usuario
+      // (Postgres trata cada sentencia como su propia transacción) => sin huérfanos.
+      const rows = await sql`
+        WITH new_user AS (
+          INSERT INTO users (email, display_name, share_link, stars)
+          VALUES (${email}, ${displayName}, ${shareLink}, 100)
+          RETURNING *
+        ), new_provider AS (
+          INSERT INTO auth_providers (user_id, provider, provider_id)
+          SELECT id, 'email', ${passwordHash} FROM new_user
+        )
+        SELECT * FROM new_user
       `;
 
+      const user = rows[0];
       const token = signJWT(user.id);
       return NextResponse.json({ token, user });
 
