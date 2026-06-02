@@ -58,7 +58,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           'purchase_token': p.verificationData.serverVerificationData,
           'platform': Platform.isAndroid ? 'android' : 'ios',
         });
-        if (p.pendingCompletionData) await _iap.completePurchase(p);
+        if (p.pendingCompletePurchase) await _iap.completePurchase(p);
         if (mounted) setState(() { _message = '✓ Compra activada'; _purchasing = false; });
       } else if (p.status == PurchaseStatus.error) {
         if (mounted) setState(() { _message = 'Error: ${p.error?.message}'; _purchasing = false; });
