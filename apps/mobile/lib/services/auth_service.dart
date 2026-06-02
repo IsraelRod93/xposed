@@ -26,35 +26,6 @@ class AuthService {
     }
   }
 
-  static Future<Map<String, dynamic>?> signInWithGoogle() async {
-    return await _demoSignIn();
-  }
-
-  static Future<Map<String, dynamic>?> signInWithApple() async {
-    return await _demoSignIn();
-  }
-
-  static Future<Map<String, dynamic>?> signInWithFacebook() async {
-    return await _demoSignIn();
-  }
-
-  static Future<Map<String, dynamic>?> _demoSignIn() async {
-    try {
-      final res = await ApiService.post(
-        '/api/auth/demo',
-        {'share_link': 'Victorxposed'},
-        auth: false,
-      );
-      if (res['token'] != null) {
-        await StorageService.saveToken(res['token']);
-        return res['user'];
-      }
-      return null;
-    } catch (_) {
-      return null;
-    }
-  }
-
   static Future<void> signOut() async {
     await StorageService.deleteToken();
   }

@@ -1,6 +1,5 @@
-// Dominio del backend (apps/api). Debe coincidir con el proyecto Vercel del API.
-// Cambia este valor al dominio real cuando crees el proyecto en Vercel.
-const kApiUrl = 'https://xposed-api.vercel.app';
+// Dominio del backend (apps/api) en producción.
+const kApiUrl = 'https://xposed-eta.vercel.app';
 
 // Dominio del sitio web público (apps/web): landing, /privacy y /terms.
 // Cambia este valor al dominio real del proyecto Vercel del web.
